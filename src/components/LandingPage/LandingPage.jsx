@@ -22,7 +22,6 @@ function LandingPage() {
           <p>
             Welcome to Keebhub! 
           </p>
-
         </div>
         <div className="grid-col grid-col_4">
           <RegisterForm />
