@@ -9,7 +9,9 @@ function AboutPage() {
   return (
     <div className="container">
       <div>
-        <p>This about page is for anyone to read!</p>
+        <p>Keebhub is a market for the mechanical keyboard community to make trading, buying, and selling between users and vendors easier.
+            No more sifting through Reddit posts on r/mechmarket that redirect you to unknown vendors!
+        </p>
       </div>
     </div>
   );
