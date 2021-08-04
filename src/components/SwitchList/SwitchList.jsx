@@ -10,24 +10,25 @@ function SwitchList() {
     const history= useHistory();
 
     useEffect(() => {
-        dispatch({ type: 'FETCH_MOVIES' });
+        dispatch({ type: 'GET_SWITCHES' });
     }, []);
 
-    const handleClick= (details) => {
-        dispatch({ type: 'GET_MOVIE_DETAILS', payload: details.id})
-        history.push(`/details/${details.id}`);
-    }
+    // const handleClick= (details) => {
+    //     dispatch({ type: 'GET_SWITCHES_DETAILS', payload: details.id})
+    //     history.push(`/details/${details.id}`);
+    // }
    
     return (
         <main>
-            <h1>Movie List</h1>
-            <section className="movies">
-                {movies.map(movie => {
+            <h1>Switches</h1>
+            <section className="switchesList">
+                {switches.map(switch => {
                     return (
-                        <div key={movie.id} >
-                            <h3>{movie.title}</h3>
-                            <img src={movie.poster} alt={movie.title} onClick= {()=> handleClick(movie)}/>
-                        </div>
+                        <section className='switchContainer' key={switch.id}>
+                        <p> {switch.switch_name} </p>
+                        <p> {switch.description} </p>
+                        <img src={switch.image} height= '200px' width= '200px'/> 
+                        </section>
                     );
                 })}
             </section>

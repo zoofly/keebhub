@@ -4,6 +4,7 @@ import './LandingPage.css';
 
 // CUSTOM COMPONENTS
 import RegisterForm from '../RegisterForm/RegisterForm';
+import SwitchList from '../SwitchList/SwitchList';
 
 function LandingPage() {
   const [heading, setHeading] = useState('Hello There');
