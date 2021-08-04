@@ -10,6 +10,7 @@ router.get('/', (req, res) => {
   const queryText= `SELECT * from switches;`;
   pool.query(queryText)
   .then(dbResponse => {
+    console.log(dbResponse.rows);
     res.send(dbResponse.rows);
   }) .catch (error => {
     console.log('Error in getting switches', error);

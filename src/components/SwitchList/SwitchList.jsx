@@ -6,7 +6,7 @@ import './SwitchList.css'
 function SwitchList() {
 
     const dispatch = useDispatch();
-    const switches = useSelector(store => store.switches);
+    const switchesList = useSelector(store => store.switches);
     const history= useHistory();
 
     useEffect(() => {
@@ -19,20 +19,21 @@ function SwitchList() {
     // }
    
     return (
-        <main>
+        <div>
             <h1>Switches</h1>
-            <section className="switchesList">
-                {switches.map(switch => {
+                {switchesList.map((item) => {
                     return (
-                        <section className='switchContainer' key={switch.id}>
-                        <p> {switch.switch_name} </p>
-                        <p> {switch.description} </p>
-                        <img src={switch.image} height= '200px' width= '200px'/> 
-                        </section>
+                        <div className='switchContainer' key={item.id}>
+                        <p> {item.switch_name} </p>
+                        <p> {item.description} </p>
+                        <p> {item.switch_type} </p>
+                        <p> {item.actuation_point} </p>
+                        <p> {item.switch_mount} </p>
+                        <img src={item.image} height= '200px' width= '200px'/> 
+                        </div>
                     );
                 })}
-            </section>
-        </main>
+        </div>
 
     );
 }
