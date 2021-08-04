@@ -10,7 +10,7 @@ function Market() {
   return (
     <div className="container">
       <p>Market Page</p>
-      <p> MAP OUT LIST OF SWITCHES HERE </p>
+      
     </div>
   );
 }
