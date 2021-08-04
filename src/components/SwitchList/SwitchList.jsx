@@ -25,11 +25,12 @@ function SwitchList() {
                     return (
                         <div className='switchContainer' key={item.id}>
                         <p> {item.switch_name} </p>
+                        <img src={item.image} height= '200px' width= '200px'/>
                         <p> {item.description} </p>
                         <p> {item.switch_type} </p>
                         <p> {item.actuation_point} </p>
                         <p> {item.switch_mount} </p>
-                        <img src={item.image} height= '200px' width= '200px'/> 
+                        
                         </div>
                     );
                 })}
