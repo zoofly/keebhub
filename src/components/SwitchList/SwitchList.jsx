@@ -19,7 +19,7 @@ function SwitchList() {
     // }
    
     return (
-        <div>
+        <div></div>
             <h1>Switches</h1>
                 {switchesList.map((item) => {
                     return (
