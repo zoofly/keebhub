@@ -20,6 +20,7 @@ import LandingPage from '../LandingPage/LandingPage';
 import LoginPage from '../LoginPage/LoginPage';
 import RegisterPage from '../RegisterPage/RegisterPage';
 import Market from '../Market/Market';
+import PostingForm from '../PostingForm/PostingForm';
 
 import './App.css';
 
@@ -90,6 +91,18 @@ function App() {
             authRedirect="/market"
           >
             <RegisterPage />
+
+          </ProtectedRoute>
+
+          <ProtectedRoute
+            // with authRedirect:
+            // - if logged in, redirects to "/user"
+            // - else shows RegisterPage at "/registration"
+            exact
+            path="/create"
+            // authRedirect="/market"
+          >
+            <PostingForm />
           </ProtectedRoute>
 
           {/* <ProtectedRoute

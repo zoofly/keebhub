@@ -1,11 +1,9 @@
-import React, { useEffect } from 'react';
+import  { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 
 
 function PostingForm() {
-  
-  const history= useHistory();
   
   const dispatch = useDispatch();
   const history= useHistory();
@@ -14,8 +12,58 @@ function PostingForm() {
   const [postImage, setImage]= useState('');
   const [postPrice, setPrice]= useState('');
 
+  const newPost = {
+    title: postTitle,
+    image: postImage,
+    description: postDescription,
+    price: postPrice
+
+}
+
+  const handleCancel= (event) =>{
+    event.preventDefault();
+    history.push('/market');
+
+}
+
+const handleSave= (event) => {
+    event.preventDefault();
+    console.log('successfully saved post');
+    dispatch({type: 'ADD_POST', payload: newPost})
+    setDescription('');
+    setPrice('');
+    setImage('');
+    setTitle('');
+
+
+}
+
+const handleTitle= (event) =>{
+    event.preventDefault();
+    setTitle(event.target.value);
+};
+
+const handleDescription= (event) =>{
+    event.preventDefault();
+    setDescription(event.target.value);
+};
+
+const handleImage= (event) =>{
+    event.preventDefault();
+    setImage(event.target.value);
+};
+
+const handlePrice= (event) =>{
+    event.preventDefault();
+    setPrice(event.target.value);
+};
+
+
+
+
   const createHandler = () => {
-    history.push('/mylistings')
+    history.push('/market')
+    alert('Successfully Added!');
   }
   return (
     <div className="container">
@@ -30,27 +78,36 @@ function PostingForm() {
             </input>
 
             <input
-            name= 'addPoster'
+            name= 'addImage'
             type= 'text'
-            value= {moviePoster}
-            placeholder= 'Enter Movie Poster URL'
-            onChange={handlePoster}>
+            value= {postImage}
+            placeholder= 'Upload Image'
+            onChange={handleImage}>
                 
             </input>
 
             <input
             name= 'addDescription'
             type= 'text'
-            value= {movieDescription}
-            placeholder= 'Enter Movie Description'
+            value= {postDescription}
+            placeholder= 'Description'
             onChange={handleDescription}>
                 
             </input>
 
-            <select
-            id= 'addGenre'
+            <input
+            name= 'addPrice'
             type= 'text'
-            value= {movieGenre}
+            value= {postPrice}
+            placeholder= 'Price'
+            onChange={handlePrice}>
+                
+            </input>
+
+            {/* <select
+            id= 'addCondition'
+            type= 'text'
+            value= {postprice}
             onChange= {handleGenre}
             name='Genres'>
                 <option value= '' defaultValue> Choose a Genre here </option>
@@ -68,7 +125,7 @@ function PostingForm() {
                 <option onClick={handleGenre} value='12'> Space-Opera </option>
                 <option onClick={handleGenre} value= '13'>  Superhero </option>
                 
-            </select>
+            </select> */}
 
             <button type='submit' onClick={handleSave}> Save </button>
             <button onClick={handleCancel}> Cancel </button>

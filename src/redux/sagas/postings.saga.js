@@ -3,6 +3,7 @@ import axios from 'axios';
 
 function* postingsSaga(){
     yield takeEvery('GET_LISTINGS', fetchPosts); //should match up on client sided sagas
+    yield takeEvery ('ADD_POST', newPost)
 }
 
 function* fetchPosts() {
@@ -14,5 +15,13 @@ function* fetchPosts() {
     }
 }
 
-
+function* addPost(action) {
+    try{
+        console.log('in addPost', action.payload);
+        yield call(axios.post, '/market', action.payload);
+        yield put ({type: 'GET_LISTINGS'});
+    } catch (error) {
+        console.log('in addPost; failed to add posting', error);
+    }
+}
 export default postingsSaga;
