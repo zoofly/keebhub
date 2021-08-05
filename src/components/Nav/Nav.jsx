@@ -32,9 +32,12 @@ function Nav() {
             <Link className="navLink" to="/market">
               Market
             </Link> 
-            {/* <Link className="navLink" to="/saved">
+            <Link className='navLink' to='/mylistings'/>
+
+            <Link className="navLink" to="/saved">
               Saved Listings
-            </Link>  */}
+            </Link> 
+
             <LogOutButton className="navLink" />
 
           </>
