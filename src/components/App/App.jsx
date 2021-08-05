@@ -21,7 +21,7 @@ import LoginPage from '../LoginPage/LoginPage';
 import RegisterPage from '../RegisterPage/RegisterPage';
 import Market from '../Market/Market';
 import PostingForm from '../PostingForm/PostingForm';
-
+import Saved from '../SavedListings/SavedListings';
 import './App.css';
 
 function App() {

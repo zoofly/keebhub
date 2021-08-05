@@ -29,7 +29,9 @@ function PostingForm() {
 const handleSave= (event) => {
     event.preventDefault();
     console.log('successfully saved post');
-    dispatch({type: 'ADD_POST', payload: newPost})
+    dispatch({type: 'ADD_POST', payload: newPost});
+    history.push('/market')
+    alert('Successfully Added!');
     setDescription('');
     setPrice('');
     setImage('');
@@ -58,13 +60,6 @@ const handlePrice= (event) =>{
     setPrice(event.target.value);
 };
 
-
-
-
-  const createHandler = () => {
-    history.push('/market')
-    alert('Successfully Added!');
-  }
   return (
     <div className="container">
     <form>
