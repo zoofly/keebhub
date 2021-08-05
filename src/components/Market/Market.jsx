@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useHistory } from 'react-router';
+import './Market.css';
 
 
 // This is one of our simplest components
@@ -7,10 +10,26 @@ import React from 'react';
 // or even care what the redux state is
 
 function Market() {
+  const dispatch = useDispatch();
+  const postings = useSelector(store => store.postings);
+  const history= useHistory();
+
+  useEffect(() => {
+    dispatch({ type: 'GET_LISTINGS' });
+}, []);
+
   return (
     <div className="container">
       <p>Market Page</p>
-      
+      {postings.map(post =>{
+        return (
+          <div className='postContainer' key={post.id}>
+            <p> {post.title}</p>
+            <img src={post.image} width='200px' height='200px'/>
+            <p> {post.price} </p>
+          </div>
+        )
+      })}
     </div>
   );
 }

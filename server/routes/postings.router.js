@@ -6,16 +6,16 @@ const rejectUnauthenticated =
 /**
  * Get all of the items from postings 
  */
-router.get("/", rejectUnauthenticated, (req, res) => {
-  const query = `SELECT * FROM item WHERE user_id=$1;`;
+router.get('/', rejectUnauthenticated, (req, res) => {
+  const query = `SELECT * FROM postings;`;
   pool
-    .query(query, [req.user.id])
+    .query(query)
     .then((results) => {
       console.log(results.rows);
       res.send(results.rows);
     })
     .catch((error) => {
-      console.log("error GETting items", error);
+      console.log("error GETting posts", error);
     });
   //res.sendStatus(200); // For testing only, can be removed
 });
@@ -25,20 +25,22 @@ router.get("/", rejectUnauthenticated, (req, res) => {
  */
 router.post("/", rejectUnauthenticated, (req, res) => {
   console.log("req.body:", req.body);
-  const addItemQuery = `INSERT INTO item (description, image_url, user_id)
-   VALUES ($1, $2, $3);`;
+  const createPostQuery = `INSERT INTO postings (title, description, image, price, user_id)
+   VALUES ($1, $2, $3, $4, $5);`;
   pool
-    .query(addItemQuery, [
+    .query(createPostQuery, [
+      req.body.title,
       req.body.description,
-      req.body.image_url,
+      req.body.image,
+      req.body.price,
       req.user.id,
     ])
     .then((result) => {
-      console.log("New Item on shelf is", result);
+      console.log("New Item on market", result);
       res.sendStatus(201);
     })
     .catch((error) => {
-      console.log(`ERROR Adding item: ${error}`);
+      console.log(`ERROR creating post: ${error}`);
       res.sendStatus(500);
     });
 
