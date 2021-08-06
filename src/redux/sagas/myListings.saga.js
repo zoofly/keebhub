@@ -7,7 +7,7 @@ function* myListingsSaga(){
 
 function* getListings() {
     try {
-        const response = yield axios.get('/saved');
+        const response = yield axios.get('/mylistings');
         yield put({ type: 'SET_MY_LISTINGS', payload: response.data});
     } catch (error) {
         console.log('Error GETting users postings', error);
