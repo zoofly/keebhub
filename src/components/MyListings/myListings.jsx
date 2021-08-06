@@ -10,15 +10,43 @@ function MyListings() {
     const [postDescription, setDescription]= useState('');
     const [postImage, setImage]= useState('');
     const [postPrice, setPrice]= useState('');
+    const [editItemId, setEditItemId] = useState('');
+    const [postDetails, setPostDetails] = useState ('');
     const myListings = useSelector(store => store.myListings);
+    
 
     useEffect(() => {
         dispatch({ type: 'GET_MY_LISTINGS' });
     }, []);
       
+    const isVisibleToggle = () => {
+      setIsVisible(!isVisible);
+    }
+  
       const handleDelete = (deleteItem) => {
         dispatch({ type: 'DELETE_POST', payload: deleteItem })
       }
+
+      const handleEdit = (postDetails) => {
+        isVisibleToggle();
+        setDescription(postDetails.description);
+        setPrice(postDetails.price);
+        setImage(postDetails.image);
+        setEditItemId(postDetails.id);
+        
+      }
+      
+      const handleSave = () => {
+        setItemDetails({
+          description: description,
+          price: price,
+          image: image,
+          id: editItemId
+        })
+        dispatch({ type: 'EDIT_ITEM', payload: itemDetails })
+        // isVisibleToggle();
+      }
+    
         return (
             <div className="container">
               <h2>Your Posts</h2>
@@ -26,7 +54,7 @@ function MyListings() {
                 return (
                   <div key= {post.id}>
                     <p> {post.description} </p>
-                    <p> {post.price} </p>
+                    <p> ${post.price} </p>
                     <img src={post.image} height= '100px' width= '100px' />
                     <button onClick={ () => handleDelete(post.id)}>Delete</button>
                     <button onClick={ () => handleEdit(post)}>Edit</button>
@@ -36,8 +64,8 @@ function MyListings() {
               })}
               { isVisible && 
                 <>
-                  <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} />
-                  <input type="text" value={image} onChange={(event) => setImage(event.target.value)} />
+                  <input type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
+                  <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
                   <button type="button" onClick={ () => handleSave()}>Save Changes</button>
                 </>}
             </div>

@@ -7,7 +7,7 @@ function* deleteSaga () {
 
 function* deleteItem (action){
     try {
-        yield call(axios.delete, `/api/shelf/${action.payload}`);
+        yield call(axios.delete, `/mylistings/${action.payload}`);
         console.log(`What is in the DELETE payload`, action.payload);
         yield put({ type: 'GET_MY_LISTINGS' });
     } catch(error){
