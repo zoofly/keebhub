@@ -61,11 +61,11 @@ router.put("/:id", rejectUnauthenticated, (req, res) => {
       req.params.id,
     ])
     .then((result) => {
-      console.log("successfully updated database", result);
+      console.log("successfully updated post", result);
       res.sendStatus(201);
     })
     .catch((error) => {
-      console.log("error updating database", error);
+      console.log("error updating post", error);
       res.sendStatus(500);
     });
 });
