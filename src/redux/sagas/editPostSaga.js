@@ -10,7 +10,7 @@ function* editItem (action){
 		yield call(axios.put, `/market/${action.payload.id}`, action.payload);
 		console.log(`What is in the PUT payload`, action.payload.id);
 		yield put({type: 'GET_MY_LISTINGS'});
-        yield put({type: 'GET_LISTINGS'});
+        // yield put({type: 'GET_LISTINGS'});
 	} catch(error){
 		console.log(`problem editing item`, error);
 	}

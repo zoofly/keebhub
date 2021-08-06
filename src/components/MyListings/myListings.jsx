@@ -37,14 +37,15 @@ function MyListings() {
       }
       
       const handleSave = () => {
-        setItemDetails({
-          description: description,
-          price: price,
-          image: image,
+        setPostDetails({
+          title: postTitle,
+          description: postDescription,
+          price: postPrice,
+          image: postImage,
           id: editItemId
         })
-        dispatch({ type: 'EDIT_ITEM', payload: itemDetails })
-        // isVisibleToggle();
+        dispatch({ type: 'EDIT_ITEM', payload: postDetails })
+        isVisibleToggle();
       }
     
         return (
@@ -53,21 +54,25 @@ function MyListings() {
               {myListings.map(post => {
                 return (
                   <div key= {post.id}>
+                    <h2> {post.title} </h2>
                     <p> {post.description} </p>
                     <p> ${post.price} </p>
                     <img src={post.image} height= '100px' width= '100px' />
                     <button onClick={ () => handleDelete(post.id)}>Delete</button>
                     <button onClick={ () => handleEdit(post)}>Edit</button>
-        
+                  
                   </div>
                 );
               })}
-              { isVisible && 
+                { isVisible && 
                 <>
+                   <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
                   <input type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
                   <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
+                  <input type="text" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
                   <button type="button" onClick={ () => handleSave()}>Save Changes</button>
                 </>}
+             
             </div>
      );
 }
