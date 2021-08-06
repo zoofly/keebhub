@@ -51,7 +51,7 @@ router.post("/", rejectUnauthenticated, (req, res) => {
 router.put("/:id", rejectUnauthenticated, (req, res) => {
   // endpoint functionality
   console.log(`What is being UPDATED:`, req.params.id);
-  const updateQuery = `UPDATE postings SET "title"=$1, "description"=$2, "image"=$3, "price'=$4 WHERE "id"=$3`;
+  const updateQuery = `UPDATE postings SET "title"=$1, "description"=$2, "image"=$3, "price"=$4 WHERE "id"=$5;`;
   pool
     .query(updateQuery, [
       req.body.title,

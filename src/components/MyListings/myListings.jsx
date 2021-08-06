@@ -66,10 +66,10 @@ function MyListings() {
               })}
                 { isVisible && 
                 <>
-                   <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
+                  <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
                   <input type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
                   <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
-                  <input type="text" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
+                  <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
                   <button type="button" onClick={ () => handleSave()}>Save Changes</button>
                 </>}
              
