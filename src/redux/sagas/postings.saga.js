@@ -3,7 +3,8 @@ import axios from 'axios';
 
 function* postingsSaga(){
     yield takeEvery('GET_LISTINGS', fetchPosts); //should match up on client sided sagas
-    yield takeEvery ('ADD_POST', addPost)
+    yield takeEvery ('ADD_POST', addPost);
+    yield takeEvery('GET_MY_LISTINGS', fetchUserPosts);
 }
 
 function* fetchPosts() {
@@ -26,6 +27,15 @@ function* addPost(action) {
     }
 }
 
+//gets individual user generated listings
+function* fetchUserPosts() {
+    try {
+        const response = yield axios.get('/mylistings');
+        yield put({ type: 'SET__MY_LISTINGS', payload: response.data});
+    } catch (error) {
+        console.log('Error GETting users posts', error);
+    }
+}
 //delete generator function 
 
 export default postingsSaga;

@@ -22,22 +22,6 @@ router.get('/', rejectUnauthenticated, (req, res) => {
 });
 
 /**
- * Get all of the items on the shelf
- */
- router.get('/', rejectUnauthenticated, (req, res) => {
-  const query = `SELECT * FROM postings WHERE user_id=$1;`;
-  pool
-    .query(query, [req.user.id])
-    .then((results) => {
-      console.log(results.rows);
-      res.send(results.rows);
-    })
-    .catch((error) => {
-      console.log("error GETting items", error);
-    });
-  //res.sendStatus(200); // For testing only, can be removed
-});
-/**
  * Add an item for the logged in user to the shelf
  */
 router.post("/", rejectUnauthenticated, (req, res) => {

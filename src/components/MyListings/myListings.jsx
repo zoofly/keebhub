@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 
-function SavedPage() {
+function MyListings() {
     const dispatch = useDispatch();
 
     const [isVisible, setIsVisible] = useState(false);
@@ -13,7 +13,7 @@ function SavedPage() {
     const postings = useSelector(store => store.postings);
 
     useEffect(() => {
-        dispatch({ type: 'GET_LISTINGS' });
+        dispatch({ type: 'GET_MY_LISTINGS' });
     }, []);
       
       const handleDelete = (deleteItem) => {
@@ -23,13 +23,13 @@ function SavedPage() {
             <div className="container">
               <h2>Shelf</h2>
               <p>All of the available items can be seen here.</p>
-              {shelfItem.map(item => {
+              {postings.map(post => {
                 return (
-                  <ul key= {item.id}>
-                    <li> {item.description} </li>
-                    <img src={item.image_url} height= '100px' width= '100px' />
-                    <button onClick={ () => handleDelete(item.id)}>Delete</button>
-                    <button onClick={ () => handleEdit(item)}>Edit</button>
+                  <ul key= {post.id}>
+                    <li> {post.description} </li>
+                    <img src={post.image} height= '100px' width= '100px' />
+                    <button onClick={ () => handleDelete(post.id)}>Delete</button>
+                    <button onClick={ () => handleEdit(post)}>Edit</button>
         
                   </ul>
                 );
@@ -43,4 +43,4 @@ function SavedPage() {
             </div>
      );
 }
-export default Saved;
+export default MyListings;

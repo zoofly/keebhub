@@ -21,7 +21,7 @@ import LoginPage from '../LoginPage/LoginPage';
 import RegisterPage from '../RegisterPage/RegisterPage';
 import Market from '../Market/Market';
 import PostingForm from '../PostingForm/PostingForm';
-import Saved from '../SavedListings/SavedListings';
+import MyListings from '../MyListings/myListings';
 import './App.css';
 
 function App() {
@@ -103,6 +103,17 @@ function App() {
             // authRedirect="/market"
           >
             <PostingForm />
+          </ProtectedRoute>
+          
+          <ProtectedRoute
+            // with authRedirect:
+            // - if logged in, redirects to "/user"
+            // - else shows RegisterPage at "/registration"
+            exact
+            path="/mylistings"
+            // authRedirect="/market"
+          >
+            <MyListings />
           </ProtectedRoute>
 
           {/* <ProtectedRoute
