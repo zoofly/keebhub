@@ -2,7 +2,7 @@ import { put, call, takeEvery } from 'redux-saga/effects';
 import axios from 'axios';
 
 function* myListingsSaga(){
-    yield takeEvery('GET__MY_LISTINGS', getListings);
+    yield takeEvery('GET_MY_LISTINGS', getListings);
 }
 
 function* getListings() {
