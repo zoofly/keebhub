@@ -5,6 +5,7 @@ import userSaga from './user.saga';
 import switchesSaga from './switches.saga';
 import postingsSaga from './postings.saga';
 import deleteSaga from './deleteSaga';
+import myListingsSaga from './myListings.saga';
 // rootSaga is the primary saga.
 // It bundles up all of the other sagas so our project can use them.
 // This is imported in index.js as rootSaga
@@ -20,5 +21,6 @@ export default function* rootSaga() {
     switchesSaga(),
     postingsSaga(),
     deleteSaga(),
+    myListingsSaga(),
   ]);
 }

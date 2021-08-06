@@ -4,7 +4,7 @@ const router = express.Router();
 const rejectUnauthenticated =
   require("../modules/authentication-middleware").rejectUnauthenticated;
 
-router.get("/", rejectUnauthenticated, (req, res) => {
+router.get('/', rejectUnauthenticated, (req, res) => {
     const query = `SELECT * FROM postings WHERE user_id=$1;`;
     pool
       .query(query, [req.user.id])
@@ -13,7 +13,10 @@ router.get("/", rejectUnauthenticated, (req, res) => {
         res.send(results.rows);
       })
       .catch((error) => {
-        console.log("error GETting items", error);
+        console.log("error GETting posts", error);
       });
     //res.sendStatus(200); // For testing only, can be removed
   });
+
+  
+module.exports = router;

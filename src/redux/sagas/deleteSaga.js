@@ -2,7 +2,7 @@ import { put, call, takeEvery } from 'redux-saga/effects';
 import axios from 'axios';
 
 function* deleteSaga () {
-    yield takeEvery('DELETE_ITEM', deleteItem);
+    yield takeEvery('DELETE_POST', deleteItem);
 }
 
 function* deleteItem (action){
