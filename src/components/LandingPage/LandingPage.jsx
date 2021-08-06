@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
+import {useSelector} from 'react-redux';
 import './LandingPage.css';
 
 // CUSTOM COMPONENTS
@@ -7,6 +8,7 @@ import RegisterForm from '../RegisterForm/RegisterForm';
 import SwitchList from '../SwitchList/SwitchList';
 
 function LandingPage() {
+  const user = useSelector((store) => store.user);
   const [heading, setHeading] = useState('Hello There');
   const history = useHistory();
 
@@ -26,6 +28,7 @@ function LandingPage() {
           <SwitchList />
         </div>
        
+        {!user.id && (
         <div className="grid-col grid-col_4">
           <RegisterForm />
 
@@ -36,6 +39,7 @@ function LandingPage() {
             </button>
           </center>
         </div>
+         )}
       </div>
     </div>
   );
