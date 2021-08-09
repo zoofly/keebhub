@@ -56,6 +56,19 @@ function MyListings() {
         return (
             <div className="container">
               <h2>Your Posts</h2>
+              { isVisible && 
+                    <div className='editForm'>
+                    <label> Title: </label>
+                    <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
+                    <label> Description: </label>
+                    <textarea type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
+                    <label> Upload Image </label>
+                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
+                    <label> Price: </label>
+                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
+                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
+                    </div>
+                    }
               {myListings.map(post => {
                 return (
                   <div className='indPost'key= {post.id}>
@@ -72,19 +85,7 @@ function MyListings() {
                   
                 );
               })}
-               { isVisible && 
-                    <div className='editForm'>
-                    <label> Title: </label>
-                    <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
-                    <label> Description: </label>
-                    <textarea type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
-                    <label> Upload Image </label>
-                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
-                    <label> Price: </label>
-                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
-                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
-                    </div>
-                    }
+              
                
             </div>
      );
