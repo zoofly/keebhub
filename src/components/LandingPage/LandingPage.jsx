@@ -22,9 +22,9 @@ function LandingPage() {
 
       <div className="grid">
         <div className="grid-col grid-col_8">
-          <p>
+          <h3>
             Welcome to Keebhub! 
-          </p> 
+          </h3> 
           <SwitchList />
         </div>
        

@@ -20,7 +20,7 @@ function SwitchList() {
    
     return (
         <div>
-            <h1>Switches</h1>
+            <h4>Switches</h4>
                 {switchesList.map((item) => {
                     return (
                         <div className='switchContainer' key={item.id}>

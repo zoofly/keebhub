@@ -22,32 +22,36 @@ function MyListings() {
       
     const isVisibleToggle = () => {
       setIsVisible(!isVisible);
-    }
+    };
   
       const handleDelete = (deleteItem) => {
         dispatch({ type: 'DELETE_POST', payload: deleteItem })
-      }
+      };
 
       const handleEdit = (postDetails) => {
         isVisibleToggle();
+        setTitle(postDetails.title);
         setDescription(postDetails.description);
         setPrice(postDetails.price);
         setImage(postDetails.image);
         setEditItemId(postDetails.id);
+        console.log(`The post's ID is: ${postDetails.id}`);
         
-      }
-      
+      };
+
+    
+
       const handleSave = () => {
-        setPostDetails({
+        dispatch({ type: 'EDIT_ITEM', payload: {
           title: postTitle,
-          description: postDescription,
+          description: postDescription, 
           price: postPrice,
           image: postImage,
           id: editItemId
-        })
-        dispatch({ type: 'EDIT_ITEM', payload: postDetails })
+        } })
         isVisibleToggle();
-      }
+        
+      };
     
         return (
             <div className="container">
@@ -60,22 +64,27 @@ function MyListings() {
                     <p> ${post.price} </p>
                     <img src={post.image} />
                     <div className= 'editBtns'>
-                    <button onClick={ () => handleDelete(post.id)}>Delete</button>
-                    <button onClick={ () => handleEdit(post)}>Edit</button>
+                    <button id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</button>
+                    <button id='editBtn'  onClick={ () => handleEdit(post)}>Edit</button>
                     </div>
-                    { isVisible && 
-                    <div className='editForm'>
-                    <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
-                    <input type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
-                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
-                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
-                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
-                    </div>}
+                   
                   </div>
                   
                 );
               })}
-              
+               { isVisible && 
+                    <div className='editForm'>
+                    <label> Title: </label>
+                    <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
+                    <label> Description: </label>
+                    <textarea type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
+                    <label> Upload Image </label>
+                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
+                    <label> Price: </label>
+                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
+                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
+                    </div>
+                    }
                
             </div>
      );

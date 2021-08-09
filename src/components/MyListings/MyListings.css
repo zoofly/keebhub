@@ -28,6 +28,24 @@ p{
     margin: 10px;
 }
 
+#deleteBtn{
+    margin: 5px;
+}
 #saveBtn{
     margin: 10px;
+}
+
+input{
+    display: block;
+}
+
+textarea{
+    display: block;
+    width: 200px;
+    height: 200px;
+    margin: 5px;
+}
+
+label{
+    margin: 5px;
 }
