@@ -15,8 +15,8 @@ function Market() {
   }
   return (
     <div className="container">
-      <h1>Market Page</h1>
-      <button onClick={createHandler}> Create a New Listing </button>
+      <h1 id='marketHeader' >Market Page</h1>
+      <input className='SearchBox' type='text' placeholder='Search' /> <button id='CreateBtn' onClick={createHandler}> Create a New Listing </button>
       <PostingsList />
     </div>
   );
