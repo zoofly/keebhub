@@ -5,6 +5,7 @@ import PostingsList from '../PostingsList/PostingsList';
 import './Market.css';
 
 
+
 function Market() {
   
   const history= useHistory();

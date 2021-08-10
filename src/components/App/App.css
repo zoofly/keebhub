@@ -2,6 +2,8 @@ html,
 body,
 #react-root {
   height: 100%;
+  padding: 0;
+  margin: 0;
 }
 
 body {
@@ -90,6 +92,7 @@ Alert
   color: #e01616;
   font-size: 0.8rem;
 }
+
 
 /* --------------------------------------------------------------------------------
 Form Treatment

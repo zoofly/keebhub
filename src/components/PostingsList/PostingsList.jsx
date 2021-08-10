@@ -11,19 +11,21 @@ function PostingsList() {
     }, []);
 
     return (
-        <>
+        <div className='Container'>
         {postings.map(post =>{
             return (
-              <div className='postContainer' key={post.id}>
+              <div className='indPost' key={post.id}>
                 <h2> {post.title}</h2>
                 <h3> ${post.price} </h3>
-                <img src={post.image} width='200px' height='200px'/>
+                <center>
+                  <img src={post.image} width='200px' height='200px'/>
+                </center>
                 <p> {post.description} </p>
                 
               </div>
             )
           })}
-        </>
+        </div>
     )
 }
 
