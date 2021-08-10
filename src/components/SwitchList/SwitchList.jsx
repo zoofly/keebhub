@@ -20,6 +20,7 @@ function SwitchList() {
    
     return (
         <div>
+            
             <h4>Switches</h4>
                 {switchesList.map((item) => {
                     return (
@@ -34,6 +35,7 @@ function SwitchList() {
                         </div>
                     );
                 })}
+            
         </div>
 
     );

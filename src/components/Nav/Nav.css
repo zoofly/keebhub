@@ -1,9 +1,10 @@
 .nav {
   /* flex box layout */
   display: flex;
+  float: left;
+  flex-direction: column;
   justify-content: space-between;
   align-items: center;
-
   margin: 0 0 30px;
   background-color: #00acb0;
   overflow: hidden;
@@ -22,7 +23,7 @@
 }
 
 .navLink {
-  display: inline-block;
+  display: block;
   color: #f2f2f2;
   background-color: #00acb0;
   text-align: center;
