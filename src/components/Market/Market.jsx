@@ -5,7 +5,7 @@ import PostingsList from '../PostingsList/PostingsList';
 import Mapping from '../Map/Map';
 import Search from '../SearchBar/SearchBar';
 import './Market.css';
-
+import Button from '@material-ui/core/Button';
 
 
 function Market() {
@@ -19,7 +19,7 @@ function Market() {
     <div className="container">
       <h1 id='marketHeader' >Market Page</h1>
       <Search />
-      <button id='CreateBtn' onClick={createHandler}> Create a New Listing </button>
+      <Button id='CreateBtn' variant='contained' color='secondary' onClick={createHandler}> Create a New Listing </Button>
       <Mapping />
       <PostingsList />
     </div>
