@@ -42,6 +42,7 @@
   outline: 0;
   font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: bold;
+  flex-grow: 1;
 }
 
 .navLink:hover {

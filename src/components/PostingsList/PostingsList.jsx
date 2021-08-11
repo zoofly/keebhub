@@ -1,6 +1,9 @@
 import './PostingsList.css';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import Grid from '@material-ui/core/Grid';
+import Container from '@material-ui/core/Container';
+import Card from '@material-ui/core/Card';
 
 function PostingsList() {
     const dispatch = useDispatch();
@@ -12,10 +15,10 @@ function PostingsList() {
     }, []);
 
     return (
-        <div className='Container'>
+        <Container className='Container'>
         {postings.map(post =>{
             return (
-              <div className='indPost' key={post.id}> 
+              <Card className='indPost' key={post.id}> 
                 <h2> {post.title}</h2>
                 <h3> ${post.price} </h3>
                 <center>
@@ -23,10 +26,10 @@ function PostingsList() {
                 </center>
                 <p> {post.description} </p>
                 
-              </div>
+              </Card>
             )
           })}
-        </div>
+        </Container>
     )
 }
 
