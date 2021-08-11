@@ -5,8 +5,9 @@
   flex-direction: column;
   /* justify-content: space-between; */
   align-items: center;
+  background-color: rgb(182, 153, 79);
   margin: 0 0 0;
-  background-color: #00acb0;
+  border: solid 1px black;
   overflow: hidden;
   height: 100vw;
   
@@ -17,31 +18,52 @@
 }
 
 .nav-title {
-  font-size: 30px;
+  font-size: 40px;
   font-weight: 700;
-  color: #f2f2f2;
+  color: whitesmoke;
   padding-left: 5px;
   margin: 0;
+  font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: bolder;
 }
 
 .navLink {
   display: block;
-  color: #f2f2f2;
-  background-color: #00acb0;
+  color: whitesmoke;
   text-align: center;
   padding: 24px 10px;
   text-decoration: none;
-  font-size: 15px;
+  font-size: 18px;
 
   /* these last two make the logout button in
   the nav bar look like another link */
   border: none;
   cursor: pointer;
   outline: 0;
-  
+  font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: bold;
 }
 
 .navLink:hover {
-  background-color: #008183;
+  background-color: #e9e6d9;
+  color: black;
 }
 
+/* #Logout{
+  .navLink {
+    display: block;
+    color: whitesmoke;
+    text-align: center;
+    padding: 24px 10px;
+    text-decoration: none;
+    font-size: 18px;
+  
+    /* these last two make the logout button in
+    the nav bar look like another link */
+    /* border: none;
+    cursor: pointer;
+    outline: 0;
+    font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: bold;
+  }
+} */ 

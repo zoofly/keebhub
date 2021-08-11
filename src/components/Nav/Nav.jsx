@@ -36,13 +36,13 @@ function Nav() {
               My Listings
             </Link>
 
-            <Link className="navLink" to="/saved">
+            {/* <Link className="navLink" to="/saved">
               Saved Listings
-            </Link> 
+            </Link>  */}
 
             
             
-            <LogOutButton className="navLink" />
+            <LogOutButton id='Logout' className="navLink" />
             
           </>
           

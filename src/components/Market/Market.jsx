@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import PostingsList from '../PostingsList/PostingsList';
@@ -7,7 +7,7 @@ import './Market.css';
 
 
 function Market() {
-  
+  const [favorite, setFavorite] = useState(false)
   const history= useHistory();
   
   const createHandler = () => {

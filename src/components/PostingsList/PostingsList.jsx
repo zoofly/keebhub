@@ -1,10 +1,11 @@
 import './PostingsList.css';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 function PostingsList() {
     const dispatch = useDispatch();
     const postings = useSelector(store => store.postings);
+    const [favorite, setFavorite] = useState(false);
 
     useEffect(() => {
         dispatch({ type: 'GET_LISTINGS' });
@@ -14,7 +15,7 @@ function PostingsList() {
         <div className='Container'>
         {postings.map(post =>{
             return (
-              <div className='indPost' key={post.id}>
+              <div className='indPost' key={post.id}> 
                 <h2> {post.title}</h2>
                 <h3> ${post.price} </h3>
                 <center>

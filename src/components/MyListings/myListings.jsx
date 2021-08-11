@@ -56,19 +56,7 @@ function MyListings() {
         return (
             <div className="container">
               <h2>Your Posts</h2>
-              { isVisible && 
-                    <div className='editForm'>
-                    <label> Title: </label>
-                    <input type="text" value={postTitle} onChange={(event) => setTitle(event.target.value)} />
-                    <label> Description: </label>
-                    <textarea type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
-                    <label> Upload Image </label>
-                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
-                    <label> Price: </label>
-                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
-                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
-                    </div>
-                    }
+             
               {myListings.map(post => {
                 return (
                   <div className='indPost'key= {post.id}>
@@ -76,16 +64,29 @@ function MyListings() {
                     <p> {post.description} </p>
                     <p> ${post.price} </p>
                     <img src={post.image} />
-                    <div className= 'editBtns'>
-                    <button id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</button>
-                    <button id='editBtn'  onClick={ () => handleEdit(post)}>Edit</button>
-                    </div>
                    
                   </div>
                   
                 );
               })}
               
+                    { isVisible ?
+                    <div id='editForm'>
+                    <label> Title: </label>
+                    <input type="text" value={postDetails.postTitle} onChange={(event) => setTitle(event.target.value)} />
+                    <label> Description: </label>
+                    <textarea type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
+                    <label> Upload Image </label>
+                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
+                    <label> Price: </label>
+                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
+                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
+                    </div> :
+                      <div className= 'editBtns'>
+                      <button id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</button>
+                      <button id='editBtn'  onClick={ () => handleEdit(post)}>Edit</button>
+                      </div>
+                    }
                
             </div>
      );
