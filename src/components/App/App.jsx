@@ -23,6 +23,7 @@ import Market from '../Market/Market';
 import PostingForm from '../PostingForm/PostingForm';
 import MyListings from '../MyListings/myListings';
 import './App.css';
+require('dotenv').config();
 
 function App() {
   const dispatch = useDispatch();

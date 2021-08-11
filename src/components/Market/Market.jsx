@@ -6,6 +6,7 @@ import Mapping from '../Map/Map';
 import Search from '../SearchBar/SearchBar';
 import './Market.css';
 import Button from '@material-ui/core/Button';
+require('dotenv').config();
 
 
 function Market() {
