@@ -59,7 +59,7 @@ h3{
 #editForm{
     margin-left: 5px;
     border: solid 1px black;
-    width: 600px;
+    width: 500px;
     height: 650px;
     background-color: rgb(223, 213, 235);
 }
@@ -73,7 +73,7 @@ h3{
 }
 
 #saveBtn{
-    margin-left: 400px;
+    margin-left: 350px;
 }
 
 #EditFormHeader{
