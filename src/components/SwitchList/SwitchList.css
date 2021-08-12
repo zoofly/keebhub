@@ -18,12 +18,24 @@ p{
 
 .switchContainer{
     display: inline-block;
-    margin-left: 100px;
-    width: 300px ;
+    margin: 5px;
+    width: 330px ;
+    height: 750px;
     background-color:rgb(212, 226, 238);
     align-items: center;
+    border: solid 1px black;
+    
 }
 
 #displaySwitches{
     display: inline-block;
+    margin-left: 30px;
+}
+
+#switchesHeader{
+    font-size: 25px;
+}
+
+#switchTitle{
+    font-size: 20px;
 }

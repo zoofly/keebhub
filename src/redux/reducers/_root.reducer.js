@@ -1,9 +1,9 @@
-import { combineReducers } from 'redux';
-import errors from './errors.reducer';
-import user from './user.reducer';
-import switches from './switches.reducer';
-import postings from './postings.reducer';
-import myListings from './mylistings.reducer';
+import { combineReducers } from "redux";
+import errors from "./errors.reducer";
+import user from "./user.reducer";
+import switches from "./switches.reducer";
+import postings from "./postings.reducer";
+import myListings from "./mylistings.reducer";
 
 // rootReducer is the primary reducer for our entire project
 // It bundles up all of the other reducers so our project can use them.

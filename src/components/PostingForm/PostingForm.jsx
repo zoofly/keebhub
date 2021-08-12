@@ -1,9 +1,9 @@
 import  { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
-import {Input, Card, Box, TextField, Button} from '@material-ui/core';
+import {Input, Card, Box, TextField, Button, Grid} from '@material-ui/core';
 import './PostingForm.css';
-
+import swal from 'sweetalert';
 
 function PostingForm() {
   
@@ -33,7 +33,12 @@ const handleSave= (event) => {
     console.log('successfully saved post');
     dispatch({type: 'ADD_POST', payload: newPost});
     history.push('/market')
-    alert('Successfully Added!');
+    swal({
+      title: "Post Added!",
+      text: "Post added to market!",
+      icon: "success",
+      button: "Okay",
+    });
     setDescription('');
     setPrice('');
     setImage('');
@@ -63,11 +68,14 @@ const handlePrice= (event) =>{
 };
 
   return (
-    <Card id='formContainer' className="container">
+    <Card id='formContainer' >
       <h2 id='formHeader'> Create a Listing </h2>
-      <form>
+     
+      <form> 
+        <Grid container direction={'column'} spacing={1}>
             <TextField 
             className='InputFields'
+            variant='filled'
             label= 'Title'
             name= 'addTitle'
             type= 'text'
@@ -79,6 +87,7 @@ const handlePrice= (event) =>{
             <br/>
 
             <TextField
+            variant='filled'
             className='InputFields'
             label='Image URL'
             name= 'addImage'
@@ -90,6 +99,7 @@ const handlePrice= (event) =>{
             </TextField>
               <br/>
             <TextField
+            variant='filled'
             className='InputFields'
             label='Description'
             name= 'addDescription'
@@ -103,6 +113,7 @@ const handlePrice= (event) =>{
             </TextField>
             <br/>
             <TextField
+            variant='filled'
             className='InputFields'
             label='Price'
             name= 'addPrice'
@@ -112,15 +123,16 @@ const handlePrice= (event) =>{
             onChange={handlePrice}>
                 
             </TextField>
-
+            </Grid>
             <br/>
             <div id='formBtns'>
-            <Button className='FormSubmission' variant='contained' color='primary' size='large' type='submit' onClick={handleSave}> Save 
+            <Button className='FormSubmission' variant='contained' color='primary' size='large' type='submit' onClick={handleSave}> Submit
             </Button>
             &nbsp;
             <Button className='FormSubmission' variant='contained' color='secondary' size='large' onClick={handleCancel}> Cancel </Button>
             </div>
         </form>
+        
     </Card>
   );
 }

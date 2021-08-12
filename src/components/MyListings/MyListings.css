@@ -54,25 +54,14 @@ h3{
     margin: 10px;
 }
 
-input{
-    display: block;
-}
 
-textarea{
-    display: block;
-    width: 200px;
-    height: 200px;
-    margin: 5px;
-}
-
-label{
-    margin: 5px;
-}
 
 #editForm{
-    border:solid 1px black;
+    margin-left: 5px;
+    border: solid 1px black;
     width: 600px;
     height: 650px;
+    background-color: rgb(223, 213, 235);
 }
 
 #editFields{
@@ -80,9 +69,13 @@ label{
     width: 400px;
     height: 400px;
     margin-top: 5px;
-    background-color:rgb(216, 224, 232);
+    background-color:rgb(198, 189, 208);
 }
 
 #saveBtn{
     margin-left: 400px;
+}
+
+#EditFormHeader{
+    margin-left: 20px;
 }

@@ -10,6 +10,7 @@
   border: none;
   overflow: hidden;
   height: 100vw;
+  position: sticky;
   
 }
 

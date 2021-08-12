@@ -9,8 +9,9 @@
 }
 
 
-.container{
+#MarketContainer{
     display: inline-block;
+    margin-left: 100px;
 }
 
 #ListingsContainer{

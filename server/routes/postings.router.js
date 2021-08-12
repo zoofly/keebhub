@@ -5,9 +5,9 @@ const rejectUnauthenticated =
   require("../modules/authentication-middleware").rejectUnauthenticated;
 
 /**
- * Get all of the items from postings 
+ * Get all of the items from postings
  */
-router.get('/', rejectUnauthenticated, (req, res) => {
+router.get("/", rejectUnauthenticated, (req, res) => {
   const query = `SELECT * FROM postings;`;
   pool
     .query(query)
@@ -49,7 +49,6 @@ router.post("/", rejectUnauthenticated, (req, res) => {
 });
 
 router.put("/:id", rejectUnauthenticated, (req, res) => {
-  
   console.log(`What is being UPDATED:`, req.params.id);
   const updateQuery = `UPDATE postings SET "title"=$1, "description"=$2, "image"=$3, "price"=$4 WHERE "id"=$5;`;
   pool
@@ -72,7 +71,6 @@ router.put("/:id", rejectUnauthenticated, (req, res) => {
 });
 
 router.delete("/:id", rejectUnauthenticated, (req, res) => {
- 
   console.log(`What is being DELETED:`, req.params.id);
   const deleteItemQuery = `DELETE from postings WHERE id=$1;`;
   pool
@@ -85,7 +83,7 @@ router.delete("/:id", rejectUnauthenticated, (req, res) => {
       console.log(`Did not DELETE from database`, error);
       res.sendStatus(500);
     });
-    // endpoint functionality
-}); 
+  // endpoint functionality
+});
 
 module.exports = router;

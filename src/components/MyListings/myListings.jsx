@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useHistory } from "react-router";
 import "./MyListings.css";
-import { Card, Button, TextField, Input } from "@material-ui/core";
-
+import { Card, Button, TextField, Input, Grid} from "@material-ui/core";
+ import swal from 'sweetalert';
 function MyListings() {
   const dispatch = useDispatch();
 
@@ -15,6 +15,7 @@ function MyListings() {
   const [editItemId, setEditItemId] = useState("");
   const [postDetails, setPostDetails] = useState("");
   const myListings = useSelector((store) => store.myListings);
+ 
 
   useEffect(() => {
     dispatch({ type: "GET_MY_LISTINGS" });
@@ -24,7 +25,15 @@ function MyListings() {
     setIsVisible(!isVisible);
   };
 
+
+  
   const handleDelete = (deleteItem) => {
+    swal({
+      title: "Post Deleted!",
+      text: "Post Successfully Deleted!",
+      icon: "success",
+      button: "Okay",
+    });
     dispatch({ type: "DELETE_POST", payload: deleteItem });
   };
 
@@ -50,6 +59,11 @@ function MyListings() {
       },
     });
     isVisibleToggle();
+    swal({
+      title: "Updated Post!",
+      icon: "success",
+      button: "Okay",
+    });
   };
 
   return (
@@ -61,7 +75,9 @@ function MyListings() {
           <Card id="indPost" key={post.id}>
             <h3 className="myPostTitles"> {post.title} </h3>
             <p className="myPostPrice"> ${post.price} </p>
+            <center>
             <img src={post.image} />
+            </center>
             <p className="myPostDescription"> {post.description} </p>
             <div className="editBtns">
               <Button
@@ -87,9 +103,10 @@ function MyListings() {
 
       {isVisible && (
         <Card id="editForm">
-          <h1> Edit Post </h1>
+          <h1 id='EditFormHeader'> Edit Post </h1>
           <form id="editFields">
-            <Input
+          <Grid container direction={'column'} spacing={1}>
+            <TextField
               className="InputFields"
               label="Title"
               type="text"
@@ -107,7 +124,7 @@ function MyListings() {
               onChange={(event) => setDescription(event.target.value)}
             />
             <br />
-            <Input
+            <TextField
               className="InputFields"
               label="Image URL"
               type="text"
@@ -115,7 +132,7 @@ function MyListings() {
               onChange={(event) => setImage(event.target.value)}
             />
             <br />
-            <Input
+            <TextField
               className="InputFields"
               label="Price"
               type="number"
@@ -123,6 +140,7 @@ function MyListings() {
               onChange={(event) => setPrice(event.target.value)}
             />
             <br />
+            </Grid>
           </form>
           <Button
             id="saveBtn"

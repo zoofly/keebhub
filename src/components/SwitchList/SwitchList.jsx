@@ -15,13 +15,13 @@ function SwitchList() {
 
   return (
     <div>
-      <h4>Switches</h4>
+      <h4 id='switchesHeader'> Switches</h4>
       <div id="displaySwitches">
         {switchesList.map((item) => {
           return (
             <Card className="switchContainer" key={item.id}>
               <center>
-                <h4> {item.switch_name} </h4>
+                <h4 id='switchTitle'> {item.switch_name} </h4>
                 <img src={item.image} height="200px" width="200px" />
               </center>
               <p> {item.description} </p>
