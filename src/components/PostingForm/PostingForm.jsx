@@ -1,6 +1,7 @@
 import  { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
+import {Input, Card, Box} from '@material-ui/core';
 
 
 function PostingForm() {
@@ -63,65 +64,43 @@ const handlePrice= (event) =>{
   return (
     <div className="container">
     <form>
-            <input
+            <Input
             name= 'addTitle'
             type= 'text'
             value= {postTitle}
             placeholder= 'Title'
             onChange={handleTitle}>
                 
-            </input>
+            </Input>
 
-            <input
+            <Input
             name= 'addImage'
             type= 'text'
             value= {postImage}
             placeholder= 'Upload Image'
             onChange={handleImage}>
                 
-            </input>
+            </Input>
 
-            <input
+            <Input
             name= 'addDescription'
             type= 'text'
             value= {postDescription}
             placeholder= 'Description'
             onChange={handleDescription}>
                 
-            </input>
+            </Input>
 
-            <input
+            <Input
             name= 'addPrice'
             type= 'text'
             value= {postPrice}
             placeholder= 'Price'
             onChange={handlePrice}>
                 
-            </input>
+            </Input>
 
-            {/* <select
-            id= 'addCondition'
-            type= 'text'
-            value= {postprice}
-            onChange= {handleGenre}
-            name='Genres'>
-                <option value= '' defaultValue> Choose a Genre here </option>
-                <option onClick={handleGenre} value='1' > Adventure </option>
-                <option onClick={handleGenre} value= '2'> Animated </option>
-                <option onClick={handleGenre} value= '3'> Biographical </option>
-                <option onClick={handleGenre} value= '4'> Comedy </option>
-                <option onClick={handleGenre} value='5'> Disaster </option>
-                <option onClick={handleGenre} value='6'>  Drama </option>
-                <option onClick={handleGenre} value= '7'> Epic </option>
-                <option onClick={handleGenre} value='8'> Fantasy </option>
-                <option onClick={handleGenre} value='9'> Musical </option>
-                <option onClick={handleGenre} value='10'> Romantic </option>
-                <option onClick={handleGenre} value='11'> Science Fiction </option>
-                <option onClick={handleGenre} value='12'> Space-Opera </option>
-                <option onClick={handleGenre} value= '13'>  Superhero </option>
-                
-            </select> */}
-
+         
             <button type='submit' onClick={handleSave}> Save </button>
             <button onClick={handleCancel}> Cancel </button>
             

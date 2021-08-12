@@ -16,7 +16,7 @@ function PostingsList() {
         <Container className='Container'>
         {postings.map(post =>{
             return (
-              <Card className='indPost' key={post.id}> 
+              <Card id='indPost' key={post.id}> 
                 <h2> {post.title}</h2>
                 <h3> ${post.price} </h3>
                 <center>

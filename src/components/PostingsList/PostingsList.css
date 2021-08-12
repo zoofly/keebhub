@@ -15,8 +15,9 @@ p{
     padding: 10px;
 }
 
-.indPost{
+#indPost{
     display: inline-block;
-    width: 300px;
-    height: 500px;
+    width: 400px;
+    height: 600px;
+    margin-top: 10px;
 }

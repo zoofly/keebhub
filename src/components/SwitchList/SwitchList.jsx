@@ -23,11 +23,12 @@ function SwitchList() {
         <div>
             
             <h4>Switches</h4>
+                <div id='switchListContainer'> 
                 {switchesList.map((item) => {
                     return (
                         <Card className='switchContainer' key={item.id}>
                             <center>
-                        <p> {item.switch_name} </p>
+                        <h4> {item.switch_name} </h4>
                         <img src={item.image} height= '200px' width= '200px'/> 
                         </center>
                         <p> {item.description} </p>
@@ -37,8 +38,9 @@ function SwitchList() {
                        
                         </Card>
                     );
+               
                 })}
-            
+             </div>
         </div>
 
     );

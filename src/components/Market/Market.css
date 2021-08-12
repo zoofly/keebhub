@@ -12,3 +12,7 @@
 .container{
     display: inline-block;
 }
+
+#ListingsContainer{
+    margin-top: 50px;
+}

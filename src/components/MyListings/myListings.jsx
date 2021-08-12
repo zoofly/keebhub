@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import './MyListings.css';
+import {Card} from '@material-ui/core';
 
 function MyListings() {
     const dispatch = useDispatch();
@@ -59,18 +60,21 @@ function MyListings() {
              
               {myListings.map(post => {
                 return (
-                  <div className='indPost'key= {post.id}>
+                  <Card className='indPost'key= {post.id}>
                     <h3> {post.title} </h3>
                     <p> {post.description} </p>
                     <p> ${post.price} </p>
                     <img src={post.image} />
-                   
-                  </div>
+                   <div className= 'editBtns'>
+                      <button id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</button>
+                      <button id='editBtn'  onClick={ () => handleEdit(post)}>Edit</button>
+                      </div>
+                  </Card>
                   
                 );
               })}
               
-                    { isVisible ?
+                    { isVisible &&
                     <div id='editForm'>
                     <label> Title: </label>
                     <input type="text" value={postDetails.postTitle} onChange={(event) => setTitle(event.target.value)} />
@@ -81,11 +85,8 @@ function MyListings() {
                     <label> Price: </label>
                     <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
                     <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
-                    </div> :
-                      <div className= 'editBtns'>
-                      <button id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</button>
-                      <button id='editBtn'  onClick={ () => handleEdit(post)}>Edit</button>
-                      </div>
+                    </div>
+                      
                     }
                
             </div>

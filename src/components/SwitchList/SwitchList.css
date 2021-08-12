@@ -5,7 +5,7 @@ img{
     padding: 10px;
 } 
 
-h3{
+h4{
     padding: 10px;
 }
 
@@ -15,22 +15,15 @@ p{
     padding: 10px;
 }
 
-.indPost{
-    display: inline-block;
-    margin: 5px;
-    border: 1px solid black;
-    border-radius: 10px;
-    background-color:rgb(185, 200, 214);
-    
-}
-
-.editBtns{
-    margin: 10px;
-}
 
 .switchContainer{
-    margin-left: 130px;
-    width: ;
+    display: inline-block;
+    margin-left: 100px;
+    width: 300px ;
     background-color:rgb(212, 226, 238);
     align-items: center;
+}
+
+#displaySwitches{
+    display: inline-block;
 }

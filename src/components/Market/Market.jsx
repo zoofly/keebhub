@@ -21,7 +21,10 @@ function Market() {
       <h1 id='marketHeader' >Market Page</h1>
       <Button id='CreateBtn' variant='contained' color='secondary' onClick={createHandler}> Create a New Listing </Button>
       <Mapping />
-      <PostingsList />
+      <div id='ListingsContainer'>
+        <PostingsList />
+        </div>
+      
     </div>
   );
 }
