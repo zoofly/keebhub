@@ -21,6 +21,8 @@ function AboutPage() {
           <li> Node JS </li>
           <li> Express </li>
           <li> Redux </li>
+          <li> SweetAlert </li>
+          <li> Material UI </li>
         </ul>
       </div>
     </Card>
