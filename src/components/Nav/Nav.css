@@ -3,11 +3,11 @@
   display: flex;
   float: left;
   flex-direction: column;
-  /* justify-content: space-between; */
+  justify-content: normal;
   align-items: center;
   background-color: rgb(48, 16, 84);
   margin: 0 0 0;
-  border: solid 1px black;
+  border: none;
   overflow: hidden;
   height: 100vw;
   
@@ -49,5 +49,6 @@
 
 .navLink:hover {
   background-color: rgb(28, 11, 49);
+ 
   color: whitesmoke;
 }

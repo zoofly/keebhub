@@ -1,7 +1,8 @@
 import  { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
-import {Input, Card, Box} from '@material-ui/core';
+import {Input, Card, Box, TextField} from '@material-ui/core';
+import './PostingForm.css';
 
 
 function PostingForm() {
@@ -65,42 +66,46 @@ const handlePrice= (event) =>{
     <Card id='formContainer' className="container">
       <h2 id='formHeader'> Create a Listing </h2>
       <form>
-            <Input
+            <TextField 
+            label= 'Title'
             name= 'addTitle'
             type= 'text'
             value= {postTitle}
             placeholder= 'Title'
             onChange={handleTitle}>
                 
-            </Input>
+            </TextField>
             <br/>
 
-            <Input
+            <TextField
+            label='Image URL'
             name= 'addImage'
             type= 'text'
             value= {postImage}
             placeholder= 'Upload Image'
             onChange={handleImage}>
                 
-            </Input>
+            </TextField>
               <br/>
-            <Input
+            <TextField
+            label='Description'
             name= 'addDescription'
             type= 'text'
             value= {postDescription}
             placeholder= 'Description'
             onChange={handleDescription}>
                 
-            </Input>
+            </TextField>
             <br/>
-            <Input
+            <TextField
+            label='Price'
             name= 'addPrice'
             type= 'text'
             value= {postPrice}
             placeholder= 'Price'
             onChange={handlePrice}>
                 
-            </Input>
+            </TextField>
 
             <br/>
             <div id='formBtns'>

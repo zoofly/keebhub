@@ -14,16 +14,13 @@ function SwitchList() {
         dispatch({ type: 'GET_SWITCHES' });
     }, []);
 
-    // const handleClick= (details) => {
-    //     dispatch({ type: 'GET_SWITCHES_DETAILS', payload: details.id})
-    //     history.push(`/details/${details.id}`);
-    // }
+
    
     return (
         <div>
             
             <h4>Switches</h4>
-                <div id='switchListContainer'> 
+                <div id='displaySwitches'> 
                 {switchesList.map((item) => {
                     return (
                         <Card className='switchContainer' key={item.id}>
