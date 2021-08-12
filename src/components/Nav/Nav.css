@@ -5,7 +5,7 @@
   flex-direction: column;
   justify-content: normal;
   align-items: center;
-  background-color: rgb(48, 16, 84);
+  background-color: rgb(174, 147, 204);
   margin: 0 0 0;
   border: none;
   overflow: hidden;
@@ -20,7 +20,7 @@
 .nav-title {
   font-size: 40px;
   font-weight: 700;
-  background-color: rgb(48, 16, 84);
+  background-color: rgb(174, 147, 204);
   color: whitesmoke;
   padding-left: 5px;
   margin: 0;
@@ -31,7 +31,7 @@
 .navLink {
   display: block;
   color: whitesmoke;
-  background-color: rgb(48, 16, 84);
+  background-color: rgb(174, 147, 204);
   text-align: center;
   padding: 24px 10px;
   text-decoration: none;
@@ -48,7 +48,7 @@
 }
 
 .navLink:hover {
-  background-color: rgb(28, 11, 49);
+  background-color: rgb(174, 147, 204);
  
   color: whitesmoke;
 }

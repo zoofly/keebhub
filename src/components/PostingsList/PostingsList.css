@@ -9,9 +9,10 @@ h2, h3{
     padding: 10px;
 }
 
-p{
-    
-    font-size: 14px;
+#postDescription{
+    font-family: 'Poiret One', cursive;
+    font-weight: bold;
+    font-size: 18px;
     padding: 10px;
 }
 
@@ -19,5 +20,8 @@ p{
     display: inline-block;
     width: 400px;
     height: 600px;
-    margin-top: 10px;
+    margin-top: 5px;
+    border: solid 1px black;
+    margin: 5px;
+    background-color:rgb(216, 224, 232);
 }

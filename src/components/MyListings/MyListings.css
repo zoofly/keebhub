@@ -9,18 +9,21 @@ h3{
     padding: 10px;
 }
 
-p{
-    font-family: 'Pacifico', cursive;
-    font-size: 14px;
-    padding: 10px;
+#myHeading{
+    font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 40px;
+    padding: 5px;
+    margin: 0;
 }
 
 .indPost{
     display: inline-block;
+    width: 400px;
+    height: 600px;
+    margin-top: 5px;
+    border: solid 1px black;
     margin: 5px;
-    border: 1px solid black;
-    border-radius: 10px;
-    background-color:rgb(185, 200, 214);
+    background-color:rgb(216, 224, 232);
     
 }
 
@@ -28,13 +31,25 @@ p{
     margin: 10px;
 }
 
-.container{
-    margin-left: 130px;
+.myPostContainer{
+    margin-left: 250px;
+}
+
+.myPostTitles{
+    font-size: 25px;
+}
+
+.myPostDescription,.myPostPrice{
+    font-family: 'Poiret One', cursive;
+    font-size: 18px;
+    font-weight: bold;
+
 }
 
 #deleteBtn{
     margin: 5px;
 }
+
 #saveBtn{
     margin: 10px;
 }
@@ -52,4 +67,22 @@ textarea{
 
 label{
     margin: 5px;
+}
+
+#editForm{
+    border:solid 1px black;
+    width: 600px;
+    height: 650px;
+}
+
+#editFields{
+    margin-left: 20px;
+    width: 400px;
+    height: 400px;
+    margin-top: 5px;
+    background-color:rgb(216, 224, 232);
+}
+
+#saveBtn{
+    margin-left: 400px;
 }

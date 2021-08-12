@@ -22,8 +22,7 @@ function PostingsList() {
                 <center>
                   <img src={post.image} width='200px' height='200px'/>
                 </center>
-                <p> {post.description} </p>
-                
+                <p id='postDescription'> {post.description} </p>
               </Card>
             )
           })}

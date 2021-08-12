@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import './MyListings.css';
-import {Card, Button} from '@material-ui/core';
+import {Card, Button, TextField, Input} from '@material-ui/core';
 
 function MyListings() {
     const dispatch = useDispatch();
@@ -55,16 +55,16 @@ function MyListings() {
       };
     
         return (
-            <div className="container">
-              <h2 id='myHeading'>Your Posts</h2>
+            <div className="myPostContainer">
+              <h2 id='myHeading'>Your Posts ({myListings.length}) </h2>
              
               {myListings.map(post => {
                 return (
-                  <Card className='indPost'key= {post.id}>
-                    <h3> {post.title} </h3>
-                    <p> {post.description} </p>
-                    <p> ${post.price} </p>
+                  <Card id='indPost'key= {post.id}>
+                    <h3 className='myPostTitles'> {post.title} </h3>
+                    <p className='myPostPrice'> ${post.price} </p>
                     <img src={post.image} />
+                    <p className='myPostDescription'> {post.description} </p>
                    <div className= 'editBtns'>
                       <Button variant='contained' color='secondary' id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</Button>
                       <Button variant='contained' color='primary' id='editBtn'  onClick={ () => handleEdit(post)}>Edit</Button>
@@ -76,15 +76,48 @@ function MyListings() {
               
                     { isVisible &&
                     <Card id='editForm'>
-                    <label> Title: </label>
-                    <input type="text" value={postDetails.postTitle} onChange={(event) => setTitle(event.target.value)} />
-                    <label> Description: </label>
-                    <textarea type="text" value={postDescription} onChange={(event) => setDescription(event.target.value)} />
-                    <label> Upload Image </label>
-                    <input type="text" value={postImage} onChange={(event) => setImage(event.target.value)} />
-                    <label> Price: </label>
-                    <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
-                    <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
+                      <h1 > Edit Post </h1>
+                      <form id='editFields'>
+                    <Input className='InputFields'
+                     label= 'Title' 
+                     type="text" 
+                     value={postTitle} 
+                     onChange={(event) => setTitle(event.target.value)} />
+                    <br/>
+                    <TextField 
+                    className='InputFields'
+                    label= 'Description'
+                    multiline maxrows={5} 
+                    type="text" 
+                    value={postDescription} 
+                    onChange={(event) => setDescription(event.target.value)} />
+                    <br/>
+                    <Input 
+                    className='InputFields'
+                    label= 'Image URL'
+                    type="text" 
+                    value={postImage} 
+                    onChange={(event) => setImage(event.target.value)} />
+                    <br/>
+                    <Input 
+                    className='InputFields'
+                    label= 'Price'
+                    type="number" 
+                    value={postPrice} 
+                    onChange={(event) => setPrice(event.target.value)} />
+                    <br/>
+                    </form>
+                    <Button
+                    id='saveBtn'
+                    variant='contained'
+                    color= 'primary'
+                    size='small' 
+                    id= 'saveBtn' 
+                    type="button" 
+                    onClick={ () => handleSave()}>
+                      Save Changes
+                    </Button>
+
                     </Card>
                       
                     }
