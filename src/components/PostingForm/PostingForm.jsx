@@ -1,7 +1,7 @@
 import  { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
-import {Input, Card, Box, TextField} from '@material-ui/core';
+import {Input, Card, Box, TextField, Button} from '@material-ui/core';
 import './PostingForm.css';
 
 
@@ -67,6 +67,7 @@ const handlePrice= (event) =>{
       <h2 id='formHeader'> Create a Listing </h2>
       <form>
             <TextField 
+            className='InputFields'
             label= 'Title'
             name= 'addTitle'
             type= 'text'
@@ -78,18 +79,22 @@ const handlePrice= (event) =>{
             <br/>
 
             <TextField
+            className='InputFields'
             label='Image URL'
             name= 'addImage'
             type= 'text'
             value= {postImage}
-            placeholder= 'Upload Image'
+            placeholder= 'Image URL'
             onChange={handleImage}>
                 
             </TextField>
               <br/>
             <TextField
+            className='InputFields'
             label='Description'
             name= 'addDescription'
+            multiline
+            rows={7}
             type= 'text'
             value= {postDescription}
             placeholder= 'Description'
@@ -98,6 +103,7 @@ const handlePrice= (event) =>{
             </TextField>
             <br/>
             <TextField
+            className='InputFields'
             label='Price'
             name= 'addPrice'
             type= 'text'
@@ -109,8 +115,10 @@ const handlePrice= (event) =>{
 
             <br/>
             <div id='formBtns'>
-            <button type='submit' onClick={handleSave}> Save </button>
-            <button onClick={handleCancel}> Cancel </button>
+            <Button className='FormSubmission' variant='contained' color='primary' size='large' type='submit' onClick={handleSave}> Save 
+            </Button>
+            &nbsp;
+            <Button className='FormSubmission' variant='contained' color='secondary' size='large' onClick={handleCancel}> Cancel </Button>
             </div>
         </form>
     </Card>

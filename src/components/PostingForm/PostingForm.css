@@ -3,9 +3,22 @@
     height: 600px;
     width: 600px;
     margin-top: 20px;
-    background-color: rgb(126, 112, 144);
+    background-color: rgb(171, 157, 190);
 }
 
 #formBtns{
-    margin: 5px;
+    margin-top: 50px;
+    margin-left: 350px;
+    display: inline-block;
+
 }
+
+form{
+    border: none 1px black;
+    background-color: rgb(245, 245, 245);
+    padding: 20px;
+    border-radius: 5px;
+    color: white;
+}
+
+
