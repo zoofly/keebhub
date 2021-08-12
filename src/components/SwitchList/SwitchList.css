@@ -9,10 +9,11 @@ h4{
     padding: 10px;
 }
 
-p{
-    font-family: 'Pacifico', cursive;
-    font-size: 14px;
+.switchInformation{
+    font-family: 'Poiret One', cursive;
+    font-size: 16px;
     padding: 10px;
+    font-weight: bolder;
 }
 
 
@@ -21,7 +22,7 @@ p{
     margin: 5px;
     width: 330px ;
     height: 750px;
-    background-color:rgb(212, 226, 238);
+    background-color:rgb(193, 179, 233);
     align-items: center;
     border: solid 1px black;
     
