@@ -37,7 +37,7 @@ const Mapping = () => {
     width: "1000px"};
   
   const defaultCenter = {
-    lat: 41.3851, lng: 2.1734
+    lat: 44.989987, lng:  -93.265334
   }
   console.log(process.env.REACT_APP_GOOGLE_MAPS);
   
@@ -46,7 +46,7 @@ const Mapping = () => {
        googleMapsApiKey={`${process.env.REACT_APP_GOOGLE_MAPS}`}>
         <GoogleMap
           mapContainerStyle={mapStyles}
-          zoom={13}
+          zoom={11}
           center={defaultCenter}
         />
      </LoadScript>

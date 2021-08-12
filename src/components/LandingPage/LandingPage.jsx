@@ -17,12 +17,12 @@ function LandingPage() {
   };
 
   return (
-    <div className="container">
-      <h2>{heading}</h2>
+    <div id="SwitchListContainer">
+      <h2 id='GreetingHeader'>{heading}</h2>
 
       <div className="grid">
         <div className="grid-col grid-col_8">
-          <h3>
+          <h3 id='WelcomeHeader'>
             Welcome to Keebhub! 
           </h3> 
           <SwitchList />

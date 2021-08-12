@@ -1,9 +1,7 @@
 import './PostingsList.css';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Grid from '@material-ui/core/Grid';
-import Container from '@material-ui/core/Container';
-import Card from '@material-ui/core/Card';
+import {Container, Card} from '@material-ui/core'
 
 function PostingsList() {
     const dispatch = useDispatch();

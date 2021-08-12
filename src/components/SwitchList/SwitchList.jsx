@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import './SwitchList.css'
+import {Card} from '@material-ui/core'
 
 function SwitchList() {
 
@@ -24,15 +25,17 @@ function SwitchList() {
             <h4>Switches</h4>
                 {switchesList.map((item) => {
                     return (
-                        <div className='switchContainer' key={item.id}>
+                        <Card className='switchContainer' key={item.id}>
+                            <center>
                         <p> {item.switch_name} </p>
-                        <img src={item.image} height= '200px' width= '200px'/>
+                        <img src={item.image} height= '200px' width= '200px'/> 
+                        </center>
                         <p> {item.description} </p>
                         <p> {item.switch_type} </p>
                         <p> {item.actuation_point} </p>
                         <p> {item.switch_mount} </p>
-                        
-                        </div>
+                       
+                        </Card>
                     );
                 })}
             
