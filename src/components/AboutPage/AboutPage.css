@@ -1,0 +1,23 @@
+.AboutContainer{
+    margin-left: 300px;
+    margin-top: 0px;
+    width: 800px;
+    height: 600px;
+
+}
+
+#AboutDescription{
+    font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 30px;
+}
+
+li{
+    font-size: 16px;
+    font-weight: bolder;
+}
+
+h6{
+    font-family: 'Poiret One', cursive;
+    font-weight: bolder;
+    font-size: 20px;
+}

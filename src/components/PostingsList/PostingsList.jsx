@@ -13,12 +13,12 @@ function PostingsList() {
   }, []);
 
   return (
-    <Container className="Container">
+    <Container className="PostContainer">
       {postings.map((post) => {
         return (
           <Card id="indPost" key={post.id}>
-            <h2> {post.title}</h2>
-            <h3> ${post.price} </h3>
+            <h2 id='postTitle'> {post.title}</h2>
+            <h3 id='postPrice'> ${post.price} </h3>
             <center>
               <img src={post.image} width="200px" height="200px" />
             </center>

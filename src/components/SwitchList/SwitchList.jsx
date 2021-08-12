@@ -24,10 +24,10 @@ function SwitchList() {
                 <h4 id='switchTitle'> {item.switch_name} </h4>
                 <img src={item.image} height="200px" width="200px" />
               </center>
-              <p> {item.description} </p>
-              <p> {item.switch_type} </p>
-              <p> {item.actuation_point} </p>
-              <p> {item.switch_mount} </p>
+              <p className='switchInformation'>  {item.description} </p>
+              <p className='switchInformation'> {item.switch_type} </p>
+              <p className='switchInformation'> {item.actuation_point} </p>
+              <p className='switchInformation'> {item.switch_mount} </p>
             </Card>
           );
         })}

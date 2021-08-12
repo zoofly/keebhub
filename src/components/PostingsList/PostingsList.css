@@ -5,15 +5,13 @@ img{
     padding: 10px;
 } 
 
-h2, h3{
-    padding: 10px;
-}
 
 #postDescription{
     font-family: 'Poiret One', cursive;
     font-weight: bold; 
     font-size: 18px;
     padding: 10px;
+    margin-left: 5px;
 }
 
 #indPost{
@@ -23,5 +21,9 @@ h2, h3{
     margin-top: 5px;
     border: solid 1px black;
     margin: 5px;
-    background-color:rgb(216, 224, 232);
+    background-color:rgb(236, 219, 248);
+}
+
+#postTitle{
+    margin-left: 10px;
 }
