@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import './MyListings.css';
-import {Card} from '@material-ui/core';
+import {Card, Button} from '@material-ui/core';
 
 function MyListings() {
     const dispatch = useDispatch();
@@ -56,7 +56,7 @@ function MyListings() {
     
         return (
             <div className="container">
-              <h2>Your Posts</h2>
+              <h2 id='myHeading'>Your Posts</h2>
              
               {myListings.map(post => {
                 return (
@@ -66,8 +66,8 @@ function MyListings() {
                     <p> ${post.price} </p>
                     <img src={post.image} />
                    <div className= 'editBtns'>
-                      <button id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</button>
-                      <button id='editBtn'  onClick={ () => handleEdit(post)}>Edit</button>
+                      <Button variant='contained' color='secondary' id='deleteBtn' onClick={ () => handleDelete(post.id)}>Delete</Button>
+                      <Button variant='contained' color='primary' id='editBtn'  onClick={ () => handleEdit(post)}>Edit</Button>
                       </div>
                   </Card>
                   
@@ -75,7 +75,7 @@ function MyListings() {
               })}
               
                     { isVisible &&
-                    <div id='editForm'>
+                    <Card id='editForm'>
                     <label> Title: </label>
                     <input type="text" value={postDetails.postTitle} onChange={(event) => setTitle(event.target.value)} />
                     <label> Description: </label>
@@ -85,7 +85,7 @@ function MyListings() {
                     <label> Price: </label>
                     <input type="number" value={postPrice} onChange={(event) => setPrice(event.target.value)} />
                     <button id= 'saveBtn' type="button" onClick={ () => handleSave()}>Save Changes</button>
-                    </div>
+                    </Card>
                       
                     }
                

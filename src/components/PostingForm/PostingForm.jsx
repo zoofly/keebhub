@@ -62,8 +62,9 @@ const handlePrice= (event) =>{
 };
 
   return (
-    <div className="container">
-    <form>
+    <Card id='formContainer' className="container">
+      <h2 id='formHeader'> Create a Listing </h2>
+      <form>
             <Input
             name= 'addTitle'
             type= 'text'
@@ -72,6 +73,7 @@ const handlePrice= (event) =>{
             onChange={handleTitle}>
                 
             </Input>
+            <br/>
 
             <Input
             name= 'addImage'
@@ -81,7 +83,7 @@ const handlePrice= (event) =>{
             onChange={handleImage}>
                 
             </Input>
-
+              <br/>
             <Input
             name= 'addDescription'
             type= 'text'
@@ -90,7 +92,7 @@ const handlePrice= (event) =>{
             onChange={handleDescription}>
                 
             </Input>
-
+            <br/>
             <Input
             name= 'addPrice'
             type= 'text'
@@ -100,12 +102,13 @@ const handlePrice= (event) =>{
                 
             </Input>
 
-         
+            <br/>
+            <div id='formBtns'>
             <button type='submit' onClick={handleSave}> Save </button>
             <button onClick={handleCancel}> Cancel </button>
-            
+            </div>
         </form>
-    </div>
+    </Card>
   );
 }
 
