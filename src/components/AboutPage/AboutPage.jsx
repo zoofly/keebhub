@@ -24,6 +24,7 @@ function AboutPage() {
           <li> SweetAlert </li>
           <li> Material UI </li>
           <li> Postgresql </li>
+          <li> GoogleMaps API </li>
         </ul>
       </div>
     </Card>
