@@ -80,12 +80,13 @@ Grid
 }
 
 #SwitchListContainer{
-  padding-left: 250px;
+  padding-left: 00px;
   padding-top: 5px;
 }
 
 #GreetingHeader{
   font-size: 40px;
+  margin-left: 250px;
   margin-bottom: 0px;
   padding: 0px;
 }
@@ -93,4 +94,5 @@ Grid
 #WelcomeHeader{
   font-size: 40px;
   margin: 0px;
+  margin-left: 250px;
 }

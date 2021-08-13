@@ -23,6 +23,7 @@ function AboutPage() {
           <li> Redux </li>
           <li> SweetAlert </li>
           <li> Material UI </li>
+          <li> Postgresql </li>
         </ul>
       </div>
     </Card>
