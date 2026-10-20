@@ -1,33 +1,41 @@
 import React from 'react';
-import {Card} from '@material-ui/core';
-import './AboutPage.css'
+import { Card } from '@material-ui/core';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+import './AboutPage.css';
 
-// This is one of our simplest components
-// It doesn't have local state,
-// It doesn't dispatch any redux actions or display any part of redux state
-// or even care what the redux state is'
+const technologies = [
+  'React',
+  'Node.js',
+  'Express',
+  'Redux',
+  'SweetAlert',
+  'Material UI',
+  'PostgreSQL',
+  'Google Maps API',
+];
 
 function AboutPage() {
-  return (
-    <Card className="AboutContainer">
-      <div id='AboutDescription'>
-        <h6>Keebhub is a market for the mechanical keyboard community to make trading, buying, and selling between users and vendors easier.
-            No more sifting through Reddit posts on r/mechmarket that redirect you to unknown vendors!
-        </h6>
+  useDocumentTitle('About');
 
-        <h4 id='Technologies'> Technologies used: </h4>
-        <ul>
-          <li> React </li>
-          <li> Node JS </li>
-          <li> Express </li>
-          <li> Redux </li>
-          <li> SweetAlert </li>
-          <li> Material UI </li>
-          <li> Postgresql </li>
-          <li> GoogleMaps API </li>
+  return (
+    <div className="page page_narrow">
+      <Card className="about-card">
+        <h1>About Keebhub</h1>
+        <p className="about-card__intro">
+          Keebhub is a market for the mechanical keyboard community to make
+          trading, buying, and selling between users and vendors easier. No more
+          sifting through Reddit posts on r/mechmarket that redirect you to
+          unknown vendors!
+        </p>
+
+        <h2>Built with</h2>
+        <ul className="about-card__tech">
+          {technologies.map((tech) => (
+            <li key={tech}>{tech}</li>
+          ))}
         </ul>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 

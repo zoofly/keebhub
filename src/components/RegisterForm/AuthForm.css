@@ -1,0 +1,32 @@
+/* Shared by LoginForm and RegisterForm */
+
+.auth-card.MuiCard-root {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  border: 1px solid var(--kh-border);
+  box-shadow: 0 4px 16px rgba(67, 44, 107, 0.08);
+}
+
+.auth-card__title {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.auth-switch {
+  margin: 16px 0 0;
+  text-align: center;
+  color: var(--kh-text-muted);
+}
+
+.auth-switch a {
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .auth-card.MuiCard-root {
+    padding: 20px 16px;
+  }
+}
