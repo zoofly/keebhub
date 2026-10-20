@@ -61,7 +61,12 @@ const setStaticCacheHeaders = (res, filePath) => {
     res.setHeader('Cache-Control', 'no-cache');
   }
 };
-app.use(express.static(BUILD_DIR, { setHeaders: setStaticCacheHeaders }));
+const serveBuild = express.static(BUILD_DIR, { setHeaders: setStaticCacheHeaders });
+// API requests skip the static lookup: its fs.stat runs on libuv's thread
+// pool, where it would queue behind bcrypt work during login bursts.
+const isApiPath = (urlPath) =>
+  API_PREFIXES.some((prefix) => urlPath === prefix || urlPath.startsWith(`${prefix}/`));
+app.use((req, res, next) => (isApiPath(req.path) ? next() : serveBuild(req, res, next)));
 
 // Body parser middleware. The client only sends JSON, so form-encoded bodies
 // (the kind a cross-site HTML form can send) are not accepted.
