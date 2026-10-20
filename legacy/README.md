@@ -1,3 +1,5 @@
+> **Legacy app.** This is the original CRA + Express + Postgres keebhub, kept in `legacy/` with its own `package.json` until the Cloudflare rewrite (repo root, see [`../docs/modernization-plan.md`](../docs/modernization-plan.md)) cuts over. Run every command below from this `legacy/` directory (`cd legacy && npm ci`). It will be deleted at cutover.
+
 
 # EDA Project
 This version uses React, Redux, Express, Passport, and PostgreSQL (a full list of dependencies can be found in `package.json`).

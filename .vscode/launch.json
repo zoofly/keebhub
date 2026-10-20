@@ -11,7 +11,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "program": "${workspaceFolder}/server/server.js"
+            "program": "${workspaceFolder}/legacy/server/server.js"
         }
     ]
 }
