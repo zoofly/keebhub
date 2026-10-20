@@ -1,5 +1,6 @@
 import { put, takeLatest } from 'redux-saga/effects';
 import axios from 'axios';
+import { statusOf } from '../../utils/apiErrors';
 
 // worker Saga: will be fired on "REGISTER" actions
 function* registerUser(action) {
@@ -17,8 +18,17 @@ function* registerUser(action) {
     // after registration or after they log out
     yield put({ type: 'SET_TO_LOGIN_MODE' });
   } catch (error) {
-    console.log('Error with user registration:', error);
-    yield put({ type: 'REGISTRATION_FAILED' });
+    // Don't log the error object: it includes the request body (the password)
+    const status = statusOf(error);
+    if (status === 400) {
+      yield put({ type: 'REGISTRATION_INVALID' });
+    } else if (status === 429) {
+      yield put({ type: 'REGISTRATION_RATE_LIMITED' });
+    } else if (status === 0) {
+      yield put({ type: 'REGISTRATION_FAILED_NO_CODE' });
+    } else {
+      yield put({ type: 'REGISTRATION_FAILED' });
+    }
   }
 }
 

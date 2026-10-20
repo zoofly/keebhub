@@ -1,98 +1,59 @@
-/* --------------------------------------------------------------------------------
-Grid
--------------------------------------------------------------------------------- */
+.hero {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+  padding: 32px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--kh-primary-soft), #ffffff);
+  border: 1px solid var(--kh-border);
+}
 
-.grid {
+.hero_with-form {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.hero__eyebrow {
+  margin: 0 0 8px;
+  color: var(--kh-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero__title {
+  font-size: 3rem;
+}
+
+.hero__text {
+  max-width: 52ch;
+  margin: 0 0 24px;
+  color: var(--kh-text-muted);
+  font-size: 1.1rem;
+}
+
+.hero__actions {
   display: flex;
-  flex: 0 1 auto;
-  /* defaults to 'row' */
-  flex-direction: row;
   flex-wrap: wrap;
-  /* defaults to 'flex-start' */
-  justify-content: flex-start;
-  align-items: flex-start;
+  gap: 12px;
 }
 
-.grid-col {
-  flex: 0 0 auto;
-  padding: 0 0.5rem 0.5rem;
-  box-sizing: border-box;
+@media (max-width: 860px) {
+  .hero_with-form {
+    grid-template-columns: 1fr;
+  }
 }
 
-.grid-col_1 {
-  flex-basis: 8.33333333%;
-  max-width: 8.33333333%;
-}
+@media (max-width: 600px) {
+  .hero {
+    padding: 20px 16px;
+  }
 
-.grid-col_2 {
-  flex-basis: 16.66666667%;
-  max-width: 16.66666667%;
-}
+  .hero__title {
+    font-size: 2.25rem;
+  }
 
-.grid-col_3 {
-  flex-basis: 25%;
-  max-width: 25%;
-}
-
-.grid-col_4 {
-  flex-basis: 33.33333333%;
-  max-width: 33.33333333%;
-}
-
-.grid-col_5 {
-  flex-basis: 41.66666667%;
-  max-width: 41.66666667%;
-}
-
-.grid-col_6 {
-  flex-basis: 50%;
-  max-width: 50%;
-}
-
-.grid-col_7 {
-  flex-basis: 58.33333333%;
-  max-width: 58.33333333%;
-}
-
-.grid-col_8 {
-  flex-basis: 66.66666667%;
-  max-width: 66.66666667%;
-}
-
-.grid-col_9 {
-  flex-basis: 75%;
-  max-width: 75%;
-}
-
-.grid-col_10 {
-  flex-basis: 83.33333333%;
-  max-width: 83.33333333%;
-}
-
-.grid-col_11 {
-  flex-basis: 91.66666667%;
-  max-width: 91.66666667%;
-}
-
-.grid-col_12 {
-  flex-basis: 100%;
-  max-width: 100%;
-}
-
-#SwitchListContainer{
-  padding-left: 00px;
-  padding-top: 5px;
-}
-
-#GreetingHeader{
-  font-size: 40px;
-  margin-left: 250px;
-  margin-bottom: 0px;
-  padding: 0px;
-}
-
-#WelcomeHeader{
-  font-size: 40px;
-  margin: 0px;
-  margin-left: 250px;
+  .hero__actions > * {
+    flex: 1 1 auto;
+  }
 }

@@ -1,0 +1,26 @@
+.listing-form__preview {
+  overflow: hidden;
+  max-width: 320px;
+  border: 1px solid var(--kh-border);
+  border-radius: var(--kh-radius);
+  background-color: var(--kh-primary-soft);
+}
+
+.listing-form__preview img {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+}
+
+.listing-form__preview-note {
+  margin: 0;
+  padding: 12px;
+  color: var(--kh-text-muted);
+  font-size: 0.9rem;
+}
+
+.listing-form .alert:focus {
+  outline: 3px solid var(--kh-focus);
+  outline-offset: 2px;
+}

@@ -1,41 +1,49 @@
-import { put, call, takeEvery } from "redux-saga/effects";
-import axios from "axios";
+import { put, call, takeEvery } from 'redux-saga/effects';
+import axios from 'axios';
+import {
+  listingErrorMessage,
+  loadErrorMessage,
+  statusOf,
+} from '../../utils/apiErrors';
 
 function* postingsSaga() {
-  yield takeEvery("GET_LISTINGS", fetchPosts); //should match up on client sided sagas
-  yield takeEvery("ADD_POST", addPost);
-  yield takeEvery("GET_MY_LISTINGS", fetchUserPosts);
+  yield takeEvery('GET_LISTINGS', fetchPosts); //should match up on client sided sagas
+  yield takeEvery('ADD_POST', addPost);
+}
+
+// If the session ran out, drop the client-side user so the login form shows
+export function* handleSessionExpired(error) {
+  const status = statusOf(error);
+  if (status === 401 || status === 403) {
+    yield put({ type: 'UNSET_USER' });
+  }
 }
 
 function* fetchPosts() {
   try {
-    const response = yield axios.get("/market");
-    yield put({ type: "SET_POSTINGS", payload: response.data });
+    const response = yield axios.get('/market');
+    yield put({ type: 'SET_POSTINGS', payload: response.data });
   } catch (error) {
-    console.log("Error GETting posts", error);
+    yield put({
+      type: 'POSTINGS_FAILED',
+      payload: loadErrorMessage(error, 'listings'),
+    });
+    yield* handleSessionExpired(error);
   }
 }
 
-//saga to add a Post that was created
+// Saga to add a Post that was created.
+// action.resolve / action.reject let the form react to the real result.
 function* addPost(action) {
   try {
-    console.log("in addPost", action.payload);
-    yield call(axios.post, "/market", action.payload);
-    yield put({ type: "GET_LISTINGS" });
+    yield call(axios.post, '/market', action.payload);
+    yield put({ type: 'GET_LISTINGS' });
+    yield put({ type: 'GET_MY_LISTINGS' });
+    if (action.resolve) action.resolve();
   } catch (error) {
-    console.log("in addPost; failed to add posting", error);
+    if (action.reject) action.reject(listingErrorMessage(error));
+    yield* handleSessionExpired(error);
   }
 }
-
-//gets individual user generated listings
-function* fetchUserPosts() {
-  try {
-    const response = yield axios.get("/mylistings");
-    yield put({ type: "SET__MY_LISTINGS", payload: response.data });
-  } catch (error) {
-    console.log("Error GETting users posts", error);
-  }
-}
-//delete generator function
 
 export default postingsSaga;

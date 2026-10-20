@@ -1,0 +1,41 @@
+.status-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 16px;
+  border: 1px dashed var(--kh-border);
+  border-radius: var(--kh-radius);
+  background-color: var(--kh-surface);
+  text-align: center;
+}
+
+.status-message_error {
+  border-style: solid;
+  border-color: var(--kh-danger);
+  background-color: var(--kh-danger-soft);
+}
+
+.status-message__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.status-message_error .status-message__title {
+  color: var(--kh-danger);
+}
+
+.status-message__text {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--kh-text-muted);
+}
+
+.status-message__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}

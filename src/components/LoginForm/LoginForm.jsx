@@ -1,65 +1,70 @@
-import React, { useState } from "react";
-import { useDispatch } from "react-redux";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Button, Card, TextField } from '@material-ui/core';
+import '../RegisterForm/AuthForm.css';
 
-function LoginForm() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+function LoginForm({ headingLevel: Heading = 'h1' }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const errors = useSelector((store) => store.errors);
   const dispatch = useDispatch();
+
+  // Don't show an error left over from an earlier visit
+  useEffect(() => {
+    dispatch({ type: 'CLEAR_LOGIN_ERROR' });
+  }, [dispatch]);
 
   const login = (event) => {
     event.preventDefault();
 
-    if (username && password) {
+    if (username.trim() && password) {
       dispatch({
-        type: "LOGIN",
+        type: 'LOGIN',
         payload: {
-          username: username,
+          username: username.trim(),
           password: password,
         },
       });
     } else {
-      dispatch({ type: "LOGIN_INPUT_ERROR" });
+      dispatch({ type: 'LOGIN_INPUT_ERROR' });
     }
   }; // end login
 
   return (
-    <form className="formPanel" onSubmit={login}>
-      <h2>Login</h2>
-      {errors.loginMessage && (
-        <h3 className="alert" role="alert">
-          {errors.loginMessage}
-        </h3>
-      )}
-      <div>
-        <label htmlFor="username">
-          Username:
-          <input
-            type="text"
-            name="username"
-            required
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-          />
-        </label>
-      </div>
-      <div>
-        <label htmlFor="password">
-          Password:
-          <input
-            type="password"
-            name="password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-          />
-        </label>
-      </div>
-      <div>
-        <input className="btn" type="submit" name="submit" value="Log In" />
-      </div>
-    </form>
+    <Card className="auth-card" component="section" aria-labelledby="login-heading">
+      <form className="form-stack" onSubmit={login} noValidate>
+        <Heading id="login-heading" className="auth-card__title">
+          Log in
+        </Heading>
+        {errors.loginMessage && (
+          <div className="alert" role="alert">
+            {errors.loginMessage}
+          </div>
+        )}
+        <TextField
+          id="login-username"
+          label="Username"
+          name="username"
+          required
+          autoComplete="username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+        />
+        <TextField
+          id="login-password"
+          label="Password"
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+        />
+        <Button type="submit" variant="contained" color="primary" size="large" fullWidth>
+          Log in
+        </Button>
+      </form>
+    </Card>
   );
 }
 

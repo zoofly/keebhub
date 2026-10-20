@@ -1,23 +1,34 @@
-.AboutContainer{
-    margin-left: 300px;
-    margin-top: 0px;
-    width: 800px;
-    height: 600px;
-
+.about-card.MuiCard-root {
+  padding: 32px;
+  border: 1px solid var(--kh-border);
+  box-shadow: none;
 }
 
-#AboutDescription{
-    font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 30px;
+.about-card__intro {
+  margin: 0 0 32px;
+  color: var(--kh-text-muted);
+  font-size: 1.1rem;
 }
 
-li{
-    font-size: 16px;
-    font-weight: bolder;
+.about-card__tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-h6{
-    font-family: 'Poiret One', cursive;
-    font-weight: bolder;
-    font-size: 20px;
+.about-card__tech li {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: var(--kh-primary-soft);
+  color: var(--kh-primary-dark);
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .about-card.MuiCard-root {
+    padding: 20px 16px;
+  }
 }

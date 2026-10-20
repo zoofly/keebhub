@@ -1,25 +1,17 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import LoginForm from '../LoginForm/LoginForm';
-import { useHistory } from 'react-router-dom';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 function LoginPage() {
-  const history = useHistory();
+  useDocumentTitle('Log in');
 
   return (
-    <div>
+    <div className="page">
       <LoginForm />
-
-      <center>
-        <button
-          type="button"
-          className="btn btn_asLink"
-          onClick={() => {
-            history.push('/registration');
-          }}
-        >
-          Register
-        </button>
-      </center>
+      <p className="auth-switch">
+        New to Keebhub? <Link to="/registration">Create an account</Link>
+      </p>
     </div>
   );
 }

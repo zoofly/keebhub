@@ -1,33 +1,55 @@
-import "./PostingsList.css";
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Container, Card } from "@material-ui/core";
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { Button } from '@material-ui/core';
+import ListingsGrid from '../ListingsGrid/ListingsGrid';
+import StatusMessage from '../StatusMessage/StatusMessage';
 
 function PostingsList() {
   const dispatch = useDispatch();
   const postings = useSelector((store) => store.postings);
-  const [favorite, setFavorite] = useState(false);
+  const status = useSelector((store) => store.status.postings);
+  const user = useSelector((store) => store.user);
+
+  const loadListings = () => dispatch({ type: 'GET_LISTINGS' });
 
   useEffect(() => {
-    dispatch({ type: "GET_LISTINGS" });
-  }, []);
+    dispatch({ type: 'GET_LISTINGS' });
+  }, [dispatch]);
 
-  return (
-    <Container className="PostContainer">
-      {postings.map((post) => {
-        return (
-          <Card id="indPost" key={post.id}>
-            <h2 id='postTitle'> {post.title}</h2>
-            <h3 id='postPrice'> ${post.price} </h3>
-            <center>
-              <img src={post.image} width="200px" height="200px" />
-            </center>
-            <p id="postDescription"> {post.description} </p>
-          </Card>
-        );
-      })}
-    </Container>
-  );
+  // Keep showing existing cards during a background refresh
+  if (status.loading && postings.length === 0) {
+    return <StatusMessage variant="loading">Loading listings…</StatusMessage>;
+  }
+
+  if (status.error && postings.length === 0) {
+    return (
+      <StatusMessage
+        variant="error"
+        title="Listings didn't load"
+        onRetry={loadListings}
+      >
+        {status.error}
+      </StatusMessage>
+    );
+  }
+
+  if (postings.length === 0) {
+    return (
+      <StatusMessage
+        title="No listings yet"
+        action={
+          <Button component={Link} to="/create" variant="contained" color="primary">
+            Create the first listing
+          </Button>
+        }
+      >
+        Be the first to post a keyboard, switches, or keycaps.
+      </StatusMessage>
+    );
+  }
+
+  return <ListingsGrid listings={postings} currentUserId={user.id} />;
 }
 
 export default PostingsList;

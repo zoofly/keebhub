@@ -1,119 +1,247 @@
+/* --------------------------------------------------------------------------------
+Design tokens (kept in sync with src/theme.js)
+-------------------------------------------------------------------------------- */
+
+:root {
+  --kh-primary: #5b3f8c;
+  --kh-primary-dark: #432c6b;
+  --kh-primary-soft: #ece6f6;
+  --kh-bg: #f7f5fb;
+  --kh-surface: #ffffff;
+  --kh-text: #1f1a2b;
+  --kh-text-muted: #544b66;
+  --kh-border: #ddd5ea;
+  --kh-danger: #b3261e;
+  --kh-danger-soft: #fdecea;
+  --kh-focus: #1d4ed8;
+  --kh-radius: 8px;
+  --kh-heading-font: 'Squada One', 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+}
+
 html,
 body,
 #react-root {
-  height: 100%;
+  min-height: 100%;
   padding: 0;
   margin: 0;
 }
 
 body {
-  font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0px;
+  background-color: var(--kh-bg);
+  color: var(--kh-text);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--kh-heading-font);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  color: var(--kh-text);
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.9rem;
+  margin: 0 0 0.75rem;
+}
+
+h3 {
+  font-size: 1.4rem;
+  margin: 0 0 0.25rem;
+}
+
+a {
+  color: var(--kh-primary);
+}
+
+a:hover {
+  color: var(--kh-primary-dark);
 }
 
 img {
-  display: inline-block;
   max-width: 100%;
 }
 
-/* --------------------------------------------------------------------------------
-Container
--------------------------------------------------------------------------------- */
-
-.container {
-  margin-left: 400px;
-  padding: 20px;
+/* Visible keyboard focus everywhere, without showing rings on mouse click */
+:focus-visible {
+  outline: 3px solid var(--kh-focus);
+  outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------------------------
-Button
+Layout
 -------------------------------------------------------------------------------- */
 
-.btn {
-  font-family: 'Bungee Hairline', cursive, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  display: inline-block;
-  padding: 5px 20px;
-  border-color: #bbb5c4;
-  border-width: 1px 1px 3px;
-  border-radius: 4px;
-  background-color: #8d6eb8;
-  color: #f8f8f8;
-  font-size: 1.1rem;
-  outline: 0;
-  cursor: pointer;
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.btn_sizeMin {
-  min-height: 50px;
-  min-width: 100px;
+.app-main {
+  flex: 1 0 auto;
 }
 
-.btn_sizeSm {
-  padding: 10px 15px;
-  font-size: 0.8rem;
+.app-main:focus {
+  outline: none;
 }
 
-.btn_sizeFull {
-  display: block;
+.page {
+  box-sizing: border-box;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
 }
 
-.btn:hover {
-  background-color: #71638c;
-  text-decoration: none;
+.page_narrow {
+  max-width: 720px;
 }
 
-/* This line makes the "Register" and "Login" buttons look like links */
-.btn_asLink {
-  padding: 5px 10px;
-  border-width: 0;
-  border-bottom: 1px solid #bbb5c4;
-  border-radius: 5px;
-  background: none;
-  font: inherit;
-  background-color: #8d6eb8;
-
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
-.btn_asLink:hover {
-  background-color: #71638c;
-  border-color: #bbb5c4;
-  color: #ffffff;
+.page-header h1 {
+  margin: 0;
+}
+
+.page-lede {
+  margin: 4px 0 0;
+  color: var(--kh-text-muted);
+  font-size: 1.05rem;
+}
+
+.section {
+  margin-top: 48px;
 }
 
 /* --------------------------------------------------------------------------------
-Alert
+Accessibility helpers
+-------------------------------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 2000;
+  padding: 8px 16px;
+  border-radius: var(--kh-radius);
+  background: var(--kh-surface);
+  color: var(--kh-primary-dark);
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+/* --------------------------------------------------------------------------------
+Alerts
 -------------------------------------------------------------------------------- */
 
 .alert {
   box-sizing: border-box;
-  padding: 15px 10px;
-  margin: 15px 0;
-  border: 2px solid #e01616;
-  background-color: #efefef;
-  border-radius: 3px;
-  color: #e01616;
-  font-size: 0.8rem;
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  border-left: 4px solid var(--kh-danger);
+  border-radius: var(--kh-radius);
+  background-color: var(--kh-danger-soft);
+  color: var(--kh-danger);
+  font-size: 0.95rem;
+  font-weight: 500;
 }
-
 
 /* --------------------------------------------------------------------------------
-Form Treatment
+Forms
 -------------------------------------------------------------------------------- */
 
-.formPanel {
-  box-sizing: border-box;
-  width: 400px;
-  max-width: 100%;
-  padding: 25px;
-  margin: 100px 300px;
-  background-color: rgb(209, 184, 230);
-  border-radius: 3px;
-  box-shadow: 0 1px 2px rgb(0, 0, 0, 0.4);
-  color: white;
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-input {
-  margin: 5px;
-  margin-bottom: 10px;
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-danger.MuiButton-outlined {
+  color: var(--kh-danger);
+  border-color: var(--kh-danger);
+}
+
+.btn-danger.MuiButton-outlined:hover {
+  background-color: var(--kh-danger-soft);
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  .page {
+    padding-top: 24px;
+  }
+
+  .form-actions > * {
+    flex: 1 1 auto;
+  }
+}
+
+/* --------------------------------------------------------------------------------
+Card grid (listings, switches)
+-------------------------------------------------------------------------------- */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card-grid > li {
+  display: flex;
+}
+
+/* --------------------------------------------------------------------------------
+Dialogs
+-------------------------------------------------------------------------------- */
+
+.dialog-title {
+  margin: 0;
+}
+
+.MuiDialogContent-root .listing-form {
+  padding-bottom: 16px;
 }

@@ -1,26 +1,41 @@
-import React from "react";
-import { GoogleMap, LoadScript } from "@react-google-maps/api";
-require("dotenv").config();
+import React, { useState } from 'react';
+import { GoogleMap, LoadScript } from '@react-google-maps/api';
+import StatusMessage from '../StatusMessage/StatusMessage';
+import './Map.css';
+
+const apiKey = process.env.REACT_APP_GOOGLE_MAPS;
+
+const mapStyles = {
+  height: '100%',
+  width: '100%',
+};
+
+const defaultCenter = {
+  lat: 44.989987,
+  lng: -93.265334,
+};
 
 const Mapping = () => {
-  const mapStyles = {
-    height: "500px",
-    width: "1000px",
-  };
+  const [loadError, setLoadError] = useState(false);
 
-  const defaultCenter = {
-    lat: 44.989987,
-    lng: -93.265334,
-  };
+  if (!apiKey || loadError) {
+    return (
+      <StatusMessage title="Map unavailable">
+        The map can't be shown right now. Listings above still work as usual.
+      </StatusMessage>
+    );
+  }
 
   return (
-    <LoadScript googleMapsApiKey={`${process.env.REACT_APP_GOOGLE_MAPS}`}>
-      <GoogleMap
-        mapContainerStyle={mapStyles}
-        zoom={11}
-        center={defaultCenter}
-      />
-    </LoadScript>
+    <div className="map-frame">
+      <LoadScript
+        googleMapsApiKey={apiKey}
+        loadingElement={<StatusMessage variant="loading">Loading map…</StatusMessage>}
+        onError={() => setLoadError(true)}
+      >
+        <GoogleMap mapContainerStyle={mapStyles} zoom={11} center={defaultCenter} />
+      </LoadScript>
+    </div>
   );
 };
 
