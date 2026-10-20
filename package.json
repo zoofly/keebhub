@@ -30,9 +30,9 @@
   },
   "scripts": {
     "start": "node server/server.js",
-    "client": "react-scripts start",
+    "client": "NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
     "server": "nodemon --watch server server/server.js",
-    "build": "react-scripts build",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "test:server": "node --test server/test/*.test.js",
     "eject": "react-scripts eject"
