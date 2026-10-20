@@ -7,7 +7,8 @@
     "@material-ui/core": "^4.12.3",
     "@react-google-maps/api": "^2.2.0",
     "axios": "^0.34.0",
-    "bcryptjs": "^2.4.3",
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.2",
     "cookie-session": "^2.0.0-rc.1",
     "dotenv": "^8.6.0",
     "express": "^4.22.3",
@@ -34,10 +35,13 @@
     "server": "nodemon --watch server server/server.js",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
+    "test:server": "node --test server/test/*.test.js",
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "nodemon": "^2.0.4"
+    "nodemon": "^2.0.4",
+    "pg-mem": "^3.0.14",
+    "supertest": "^7.3.1"
   },
   "browserslist": [
     ">0.2%",

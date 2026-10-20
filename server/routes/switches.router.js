@@ -1,30 +1,25 @@
 const express = require("express");
 const pool = require("../modules/pool");
+const { asyncHandler } = require("../modules/http");
 const router = express.Router();
 
 /**
- * GET route template
+ * GET /switches: the public switch catalog.
+ * It is reference data that rarely changes, so browsers may reuse it for a
+ * few minutes (and revalidate with the ETag after that).
  */
-router.get("/", (req, res) => {
-  // GET route code here
-  const queryText = `SELECT * from switches;`;
-  pool
-    .query(queryText)
-    .then((dbResponse) => {
-      console.log(dbResponse.rows);
-      res.send(dbResponse.rows);
-    })
-    .catch((error) => {
-      console.log("Error in getting switches", error);
-      res.sendStatus(500);
-    });
-});
-
-/**
- * POST route template
- */
-router.post("/", (req, res) => {
-  // POST route code here
-});
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    const result = await pool.query(
+      `SELECT id, switch_name, image, description, switch_type,
+              actuation_point, switch_mount
+       FROM switches
+       ORDER BY id;`
+    );
+    res.set("Cache-Control", "public, max-age=300");
+    res.json(result.rows);
+  })
+);
 
 module.exports = router;

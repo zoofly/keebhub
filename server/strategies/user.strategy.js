@@ -7,29 +7,18 @@ passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
+// Runs on every request that carries a session cookie. Only select the
+// columns the app needs; the password hash never leaves this module.
 passport.deserializeUser((id, done) => {
   pool
-    .query('SELECT * FROM "user" WHERE id = $1', [id])
+    .query('SELECT id, username FROM "user" WHERE id = $1', [id])
     .then((result) => {
-      // Handle Errors
-      const user = result && result.rows && result.rows[0];
-
-      if (user) {
-        // user found
-        delete user.password; // remove password so it doesn't get sent
-        // done takes an error (null in this case) and a user
-        done(null, user);
-      } else {
-        // user not found
-        // done takes an error (null in this case) and a user (also null in this case)
-        // this will result in the server returning a 401 status code
-        done(null, null);
-      }
+      // A null user (deleted account) logs the session out
+      done(null, result.rows[0] || null);
     })
     .catch((error) => {
-      console.log('Error with query during deserializing user ', error);
-      // done takes an error (we have one) and a user (null in this case)
-      // this will result in the server returning a 500 status code
+      console.error('Error with query during deserializing user', error);
+      // results in a 500 via the error handler
       done(error, null);
     });
 });
@@ -37,28 +26,34 @@ passport.deserializeUser((id, done) => {
 // Does actual work of logging in
 passport.use(
   'local',
-  new LocalStrategy((username, password, done) => {
-    pool
-      .query('SELECT * FROM "user" WHERE username = $1', [username])
-      .then((result) => {
-        const user = result && result.rows && result.rows[0];
-        if (user && encryptLib.comparePassword(password, user.password)) {
-          // All good! Passwords match!
-          // done takes an error (null in this case) and a user
-          done(null, user);
-        } else {
-          // Not good! Username and password do not match.
-          // done takes an error (null in this case) and a user (also null in this case)
-          // this will result in the server returning a 401 status code
-          done(null, null);
-        }
-      })
-      .catch((error) => {
-        console.log('Error with query for user ', error);
-        // done takes an error (we have one) and a user (null in this case)
-        // this will result in the server returning a 500 status code
-        done(error, null);
-      });
+  new LocalStrategy(async (username, password, done) => {
+    // JSON bodies can carry arrays/objects; treat those as bad credentials
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      return done(null, false);
+    }
+    try {
+      const result = await pool.query(
+        'SELECT id, username, password FROM "user" WHERE username = $1',
+        [username]
+      );
+      const user = result.rows[0];
+      // Always run bcrypt, even for unknown usernames, so response time does
+      // not reveal which usernames exist.
+      const match = await encryptLib.comparePassword(
+        password,
+        user && user.password
+      );
+      if (user && match) {
+        // passwords match; the session only stores user.id
+        return done(null, { id: user.id, username: user.username });
+      }
+      // username/password mismatch -> passport responds 401
+      return done(null, false);
+    } catch (error) {
+      console.error('Error with query for user', error);
+      // results in a 500 via the error handler
+      return done(error);
+    }
   })
 );
 
