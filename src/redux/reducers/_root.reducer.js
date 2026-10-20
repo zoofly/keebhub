@@ -4,6 +4,8 @@ import user from "./user.reducer";
 import switches from "./switches.reducer";
 import postings from "./postings.reducer";
 import myListings from "./mylistings.reducer";
+import status from "./status.reducer";
+import authChecked from "./authChecked.reducer";
 
 // rootReducer is the primary reducer for our entire project
 // It bundles up all of the other reducers so our project can use them.
@@ -17,6 +19,8 @@ const rootReducer = combineReducers({
   switches,
   postings,
   myListings,
+  status, // loading / error state for postings, myListings, switches
+  authChecked, // true once we know whether a user is logged in
 });
 
 export default rootReducer;

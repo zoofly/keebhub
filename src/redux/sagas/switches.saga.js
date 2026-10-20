@@ -1,16 +1,20 @@
-import { put, takeEvery } from "redux-saga/effects";
-import axios from "axios";
+import { put, takeEvery } from 'redux-saga/effects';
+import axios from 'axios';
+import { loadErrorMessage } from '../../utils/apiErrors';
 
 function* switchesSaga() {
-  yield takeEvery("GET_SWITCHES", fetchSwitches);
+  yield takeEvery('GET_SWITCHES', fetchSwitches);
 }
 
 function* fetchSwitches() {
   try {
-    const response = yield axios.get("/switches");
-    yield put({ type: "SET_SWITCHES", payload: response.data });
+    const response = yield axios.get('/switches');
+    yield put({ type: 'SET_SWITCHES', payload: response.data });
   } catch (error) {
-    console.log("Error GETting switches", error);
+    yield put({
+      type: 'SWITCHES_FAILED',
+      payload: loadErrorMessage(error, 'switches'),
+    });
   }
 }
 

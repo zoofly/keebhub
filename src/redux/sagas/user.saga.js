@@ -20,7 +20,8 @@ function* fetchUser() {
     // the client-side code know the user is logged in
     yield put({ type: 'SET_USER', payload: response.data });
   } catch (error) {
-    console.log('User get request failed', error);
+    // A 403 here just means nobody is logged in
+    yield put({ type: 'USER_FETCH_FAILED' });
   }
 }
 
