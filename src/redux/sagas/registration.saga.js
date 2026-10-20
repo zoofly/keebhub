@@ -22,6 +22,8 @@ function* registerUser(action) {
     const status = statusOf(error);
     if (status === 400) {
       yield put({ type: 'REGISTRATION_INVALID' });
+    } else if (status === 409) {
+      yield put({ type: 'REGISTRATION_USERNAME_TAKEN' });
     } else if (status === 429) {
       yield put({ type: 'REGISTRATION_RATE_LIMITED' });
     } else if (status === 0) {

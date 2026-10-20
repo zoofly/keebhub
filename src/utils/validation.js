@@ -8,6 +8,7 @@ export const LIMITS = {
   usernameMax: 80,
   passwordMin: 8,
   passwordMaxBytes: 72,
+  priceMax: 99999999.99, // postings.price is NUMERIC(10, 2)
 };
 
 // True only for absolute http:// or https:// URLs
@@ -53,6 +54,8 @@ export const validatePosting = ({ title, description, image, price }) => {
     errors.price = 'Price must be a number, like 45 or 45.50.';
   } else if (priceNumber < 0) {
     errors.price = 'Price cannot be negative.';
+  } else if (priceNumber > LIMITS.priceMax) {
+    errors.price = 'Price must be under $100,000,000.';
   }
 
   return errors;

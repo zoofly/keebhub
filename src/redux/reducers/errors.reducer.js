@@ -32,10 +32,12 @@ const registrationMessage = (state = '', action) => {
       return 'Choose a username and password.';
     case 'REGISTRATION_INVALID':
       return 'Usernames must be 1–80 characters and passwords 8–72 characters.';
+    case 'REGISTRATION_USERNAME_TAKEN':
+      return 'That username is already taken. Try another one.';
     case 'REGISTRATION_RATE_LIMITED':
       return RATE_LIMITED;
     case 'REGISTRATION_FAILED':
-      return 'That account could not be created. The username might already be taken. Try another one.';
+      return 'That account could not be created. Please try again in a moment.';
     case 'REGISTRATION_FAILED_NO_CODE':
       return 'We could not reach the server. Check your connection and try again.';
     default:
