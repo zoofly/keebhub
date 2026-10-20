@@ -93,6 +93,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// cookie-session is stateless: the signed cookie has no expiry the server
+// can see, so a copied cookie would keep working forever (even after logout).
+// Login stamps the session with loginAt; logins older than the cookie's
+// max age, or without a stamp, are logged out here.
+const { SESSION_MAX_AGE_MS } = sessionMiddleware;
+app.use((req, res, next) => {
+  const { passport: auth, loginAt } = req.session;
+  if (auth && auth.user !== undefined) {
+    const age = Date.now() - loginAt;
+    if (!Number.isFinite(age) || age < 0 || age >= SESSION_MAX_AGE_MS) {
+      delete req.session.passport;
+      delete req.session.loginAt;
+    }
+  }
+  next();
+});
+
 // start up passport sessions
 app.use(passport.initialize());
 app.use(passport.session());

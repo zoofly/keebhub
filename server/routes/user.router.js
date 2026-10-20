@@ -58,6 +58,8 @@ router.post(
 // this middleware will run our POST if successful
 // this middleware will send a 401 if not successful
 router.post('/login', userStrategy.authenticate('local'), (req, res) => {
+  // app.js expires sessions by this timestamp
+  req.session.loginAt = Date.now();
   res.sendStatus(200);
 });
 
@@ -68,6 +70,7 @@ router.post('/logout', (req, res, next) => {
     if (err) {
       return next(err);
     }
+    delete req.session.loginAt;
     res.sendStatus(200);
   });
 });

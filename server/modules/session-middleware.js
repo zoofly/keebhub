@@ -33,13 +33,19 @@ const serverSessionSecret = () => {
   return process.env.SERVER_SESSION_SECRET;
 };
 
+// Also enforced on the server (see app.js): the browser drops the cookie after
+// this long, but a copied cookie would otherwise stay valid forever.
+const SESSION_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+
 module.exports = cookieSession({
   secret: serverSessionSecret(), // please set this in your .env file
   key: 'user', // this is the name of the req.variable. 'user' is convention, but not required
   resave: 'false',
   saveUninitialized: false,
-  maxAge: 60 * 60 * 1000, // Set to 1 hour - 60 min/hour * 60 s/min * 1000 ms/s
+  maxAge: SESSION_MAX_AGE_MS,
   secure: process.env.NODE_ENV === 'production', // only send the cookie over HTTPS in production
   sameSite: 'lax',
   httpOnly: true,
 });
+
+module.exports.SESSION_MAX_AGE_MS = SESSION_MAX_AGE_MS;

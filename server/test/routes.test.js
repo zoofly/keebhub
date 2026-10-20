@@ -257,6 +257,40 @@ test('form-encoded bodies are not parsed', async () => {
   assert.equal(res.status, 400);
 });
 
+// Build a signed cookie-session cookie, as cookie-session/keygrip would
+const sessionCookie = (session) => {
+  const value = Buffer.from(JSON.stringify(session)).toString('base64');
+  const sig = crypto
+    .createHmac('sha1', process.env.SERVER_SESSION_SECRET)
+    .update(`session=${value}`)
+    .digest('base64')
+    .replace(/\/|\+|=/g, (c) => ({ '/': '_', '+': '-', '=': '' })[c]);
+  return `session=${value}; session.sig=${sig}`;
+};
+
+test('sessions expire on the server, not just in the browser', async () => {
+  const me = await alice.get('/api/user');
+  const id = me.body.id;
+
+  // sanity check: a correctly signed, fresh session is accepted
+  const fresh = await request(app)
+    .get('/api/user')
+    .set('Cookie', sessionCookie({ passport: { user: id }, loginAt: Date.now() }));
+  assert.equal(fresh.status, 200);
+
+  // a copied cookie from over an hour ago
+  const stale = await request(app)
+    .get('/api/user')
+    .set('Cookie', sessionCookie({ passport: { user: id }, loginAt: Date.now() - 2 * 60 * 60 * 1000 }));
+  assert.equal(stale.status, 403);
+
+  // a session without a login timestamp (issued before this check existed)
+  const unstamped = await request(app)
+    .get('/api/user')
+    .set('Cookie', sessionCookie({ passport: { user: id } }));
+  assert.equal(unstamped.status, 403);
+});
+
 // Keep last: it uses up the login rate limit for this app instance
 test('login is rate limited', async () => {
   let status;
