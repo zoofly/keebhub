@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 const SALT_WORK_FACTOR = 10; // This determines how secure the salt should be
 
@@ -9,9 +9,11 @@ const DUMMY_HASH =
   '$2a$10$VcrmNQ8uCZDV2UsTzbRf4ukx05EzswSLRDqLh1IQsSFRCmDcWGTky';
 
 /*
-  These use bcryptjs's async API. The sync versions block the event loop for
-  the whole hash (~50-100ms at cost 10), stalling every other request on the
-  dyno; the async versions run the work in small chunks between other I/O.
+  Native bcrypt runs hash/compare on libuv's thread pool, so a login does not
+  stall other requests. (bcryptjs's "async" API only yields every 100ms, so
+  a cost-10 hash still ran in one blocking chunk on the main thread.)
+  Hashes are interchangeable with the bcryptjs ones already stored ($2a$).
+  Concurrent hashes are capped by UV_THREADPOOL_SIZE (default 4).
 */
 
 // Hash the password with a fresh random salt. Only the hash is stored.
