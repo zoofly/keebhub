@@ -14,6 +14,7 @@ router.get("/", rejectUnauthenticated, (req, res) => {
     })
     .catch((error) => {
       console.log("error GETting posts", error);
+      res.sendStatus(500);
     });
   //res.sendStatus(200); // For testing only, can be removed
 });

@@ -7,7 +7,7 @@ You need to set SERVER_SESSION_SECRET to a better secret
 Please follow the README and add a .env file
 
 It should be
-- longer than 8 characters
+- at least 32 characters
 - not "superDuperSecret"
 
 If this warning is showing on Heroku,

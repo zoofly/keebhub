@@ -12,7 +12,6 @@ const Mapping = () => {
     lat: 44.989987,
     lng: -93.265334,
   };
-  console.log(process.env.REACT_APP_GOOGLE_MAPS);
 
   return (
     <LoadScript googleMapsApiKey={`${process.env.REACT_APP_GOOGLE_MAPS}`}>

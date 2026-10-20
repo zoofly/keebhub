@@ -4,6 +4,26 @@ const router = express.Router();
 const rejectUnauthenticated =
   require("../modules/authentication-middleware").rejectUnauthenticated;
 
+// Reject postings with missing fields or non-http(s) image links
+const isValidPosting = (body) => {
+  const { title, description, image, price } = body;
+  if (typeof title !== "string" || !title.trim() || title.length > 200) {
+    return false;
+  }
+  if (typeof description !== "string" || description.length > 5000) {
+    return false;
+  }
+  if (!Number.isFinite(Number(price)) || Number(price) < 0) {
+    return false;
+  }
+  try {
+    const url = new URL(image);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Get all of the items from postings
  */
@@ -17,6 +37,7 @@ router.get("/", rejectUnauthenticated, (req, res) => {
     })
     .catch((error) => {
       console.log("error GETting posts", error);
+      res.sendStatus(500);
     });
   //res.sendStatus(200); // For testing only, can be removed
 });
@@ -25,7 +46,9 @@ router.get("/", rejectUnauthenticated, (req, res) => {
  * Add an item for the logged in user to the shelf
  */
 router.post("/", rejectUnauthenticated, (req, res) => {
-  console.log("req.body:", req.body);
+  if (!isValidPosting(req.body)) {
+    return res.sendStatus(400);
+  }
   const createPostQuery = `INSERT INTO postings (title, description, image, price, user_id)
    VALUES ($1, $2, $3, $4, $5);`;
   pool
@@ -50,7 +73,10 @@ router.post("/", rejectUnauthenticated, (req, res) => {
 
 router.put("/:id", rejectUnauthenticated, (req, res) => {
   console.log(`What is being UPDATED:`, req.params.id);
-  const updateQuery = `UPDATE postings SET "title"=$1, "description"=$2, "image"=$3, "price"=$4 WHERE "id"=$5;`;
+  if (!isValidPosting(req.body)) {
+    return res.sendStatus(400);
+  }
+  const updateQuery = `UPDATE postings SET "title"=$1, "description"=$2, "image"=$3, "price"=$4 WHERE "id"=$5 AND "user_id"=$6;`;
   pool
     .query(updateQuery, [
       req.body.title,
@@ -58,8 +84,13 @@ router.put("/:id", rejectUnauthenticated, (req, res) => {
       req.body.image,
       req.body.price,
       req.params.id,
+      req.user.id,
     ])
     .then((result) => {
+      // Only the owner can update a posting
+      if (result.rowCount === 0) {
+        return res.sendStatus(404);
+      }
       console.log("successfully updated post", result);
       res.sendStatus(201);
     })
@@ -72,10 +103,14 @@ router.put("/:id", rejectUnauthenticated, (req, res) => {
 
 router.delete("/:id", rejectUnauthenticated, (req, res) => {
   console.log(`What is being DELETED:`, req.params.id);
-  const deleteItemQuery = `DELETE from postings WHERE id=$1;`;
+  const deleteItemQuery = `DELETE from postings WHERE id=$1 AND user_id=$2;`;
   pool
-    .query(deleteItemQuery, [req.params.id])
+    .query(deleteItemQuery, [req.params.id, req.user.id])
     .then((result) => {
+      // Only the owner can delete a posting
+      if (result.rowCount === 0) {
+        return res.sendStatus(404);
+      }
       console.log(`Successfully DELETED from database`, result);
       res.sendStatus(201);
     })
