@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, Redirect } from 'react-router-dom';
 import LoginPage from '../LoginPage/LoginPage';
+import StatusMessage from '../StatusMessage/StatusMessage';
 import {useSelector} from 'react-redux';
 
 // A Custom Wrapper Component -- This will keep our code DRY.
@@ -15,6 +16,8 @@ import {useSelector} from 'react-redux';
 
 function ProtectedRoute(props) {
   const user = useSelector((store) => store.user);
+  // false until we've asked the server whether someone is logged in
+  const authChecked = useSelector((store) => store.authChecked);
 
   // Using destructuring, this takes ComponentToProtect from component
   // prop and grabs all other props to pass them along to Route
@@ -39,6 +42,18 @@ function ProtectedRoute(props) {
     ComponentToShow = LoginPage;
   }
 
+
+  // While the session check is in flight, show a spinner instead of
+  // briefly flashing the login form at people who are logged in
+  if (!authChecked) {
+    return (
+      <Route {...otherProps}>
+        <div className="page">
+          <StatusMessage variant="loading">Checking your session…</StatusMessage>
+        </div>
+      </Route>
+    );
+  }
 
   // redirect a logged in user if an authRedirect prop has been provided
   if (user.id && authRedirect != null) {
