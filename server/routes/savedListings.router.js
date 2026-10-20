@@ -49,16 +49,18 @@ router.post(
     if (postingId === null) {
       throw httpError(400, 'posting_id must be a positive integer');
     }
+    // Inserting via SELECT inserts nothing when the posting does not exist
     let inserted;
     try {
       inserted = await pool.query(
         `INSERT INTO saved_listings (user_id, posting_id)
-         VALUES ($1, $2)
+         SELECT $1::integer, id FROM postings WHERE id = $2
          ON CONFLICT (user_id, posting_id) DO NOTHING
          RETURNING ${SAVED_COLUMNS};`,
         [req.user.id, postingId]
       );
     } catch (err) {
+      // posting deleted between the SELECT and the INSERT
       if (err.code === '23503') {
         throw httpError(404, 'Posting not found');
       }
@@ -67,11 +69,15 @@ router.post(
     if (inserted.rowCount > 0) {
       return res.status(201).json(inserted.rows[0]);
     }
+    // Already saved (conflict) or no such posting
     const existing = await pool.query(
       `SELECT ${SAVED_COLUMNS} FROM saved_listings
        WHERE user_id = $1 AND posting_id = $2;`,
       [req.user.id, postingId]
     );
+    if (existing.rowCount === 0) {
+      throw httpError(404, 'Posting not found');
+    }
     res.json(existing.rows[0]);
   })
 );
