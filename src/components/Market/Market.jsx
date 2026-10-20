@@ -1,30 +1,39 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useHistory } from 'react-router';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@material-ui/core';
 import PostingsList from '../PostingsList/PostingsList';
 import Mapping from '../Map/Map';
-import './Market.css';
-import Button from '@material-ui/core/Button';
-require('dotenv').config();
-
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 function Market() {
-  
-  const history= useHistory();
-  
-  const createHandler = () => {
-    history.push('/create')
-  }
+  useDocumentTitle('Market');
 
   return (
-    <div id="MarketContainer">
-      <h1 id='marketHeader' >Market Page</h1>
-      <Button id='CreateBtn' variant='contained' color='secondary' onClick={createHandler}> Create a New Listing </Button>
-      <Mapping />
-      <div id='ListingsContainer'>
-        <PostingsList />
+    <div className="page">
+      <div className="page-header">
+        <div>
+          <h1>Market</h1>
+          <p className="page-lede">
+            Keyboards, switches, keycaps, and parts from the community.
+          </p>
         </div>
-      
+        <Button
+          component={Link}
+          to="/create"
+          variant="contained"
+          color="primary"
+          size="large"
+        >
+          Create a listing
+        </Button>
+      </div>
+
+      <PostingsList />
+
+      <section className="section" aria-labelledby="map-heading">
+        <h2 id="map-heading">Around the Twin Cities</h2>
+        <Mapping />
+      </section>
     </div>
   );
 }

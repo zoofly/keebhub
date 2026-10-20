@@ -1,139 +1,56 @@
-import  { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useHistory } from 'react-router';
-import {Input, Card, Box, TextField, Button, Grid} from '@material-ui/core';
-import './PostingForm.css';
+import React from 'react';
+import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
+import { Card } from '@material-ui/core';
 import swal from 'sweetalert';
+import ListingForm from '../ListingForm/ListingForm';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
+import './PostingForm.css';
 
 function PostingForm() {
-  
+  useDocumentTitle('Create a listing');
   const dispatch = useDispatch();
-  const history= useHistory();
-  const [postTitle, setTitle]= useState('');
-  const [postDescription, setDescription]= useState('');
-  const [postImage, setImage]= useState('');
-  const [postPrice, setPrice]= useState('');
+  const history = useHistory();
 
-  const newPost = {
-    title: postTitle,
-    image: postImage,
-    description: postDescription,
-    price: postPrice
-
-}
-
-  const handleCancel= (event) =>{
-    event.preventDefault();
-    history.push('/market');
-
-}
-
-const handleSave= (event) => {
-    event.preventDefault();
-    console.log('successfully saved post');
-    dispatch({type: 'ADD_POST', payload: newPost});
-    history.push('/market')
-    swal({
-      title: "Post Added!",
-      text: "Post added to market!",
-      icon: "success",
-      button: "Okay",
+  // Resolves only after the server accepts the listing, so the success
+  // message reflects what actually happened. Rejections are shown in the form.
+  const handleSubmit = (payload) =>
+    new Promise((resolve, reject) =>
+      dispatch({ type: 'ADD_POST', payload, resolve, reject })
+    ).then(() => {
+      history.push('/market');
+      swal({
+        title: 'Listing posted!',
+        text: 'Your listing is now live on the market.',
+        icon: 'success',
+        button: 'Okay',
+      });
     });
-    setDescription('');
-    setPrice('');
-    setImage('');
-    setTitle('');
 
-
-}
-
-const handleTitle= (event) =>{
-    event.preventDefault();
-    setTitle(event.target.value);
-};
-
-const handleDescription= (event) =>{
-    event.preventDefault();
-    setDescription(event.target.value);
-};
-
-const handleImage= (event) =>{
-    event.preventDefault();
-    setImage(event.target.value);
-};
-
-const handlePrice= (event) =>{
-    event.preventDefault();
-    setPrice(event.target.value);
-};
+  const handleCancel = () => {
+    history.push('/market');
+  };
 
   return (
-    <Card id='formContainer' >
-      <h2 id='formHeader'> Create a Listing </h2>
-     
-      <form> 
-        <Grid container direction={'column'} spacing={1}>
-            <TextField 
-            className='InputFields'
-            variant='filled'
-            label= 'Title'
-            name= 'addTitle'
-            type= 'text'
-            value= {postTitle}
-            placeholder= 'Title'
-            onChange={handleTitle}>
-                
-            </TextField>
-            <br/>
-
-            <TextField
-            variant='filled'
-            className='InputFields'
-            label='Image URL'
-            name= 'addImage'
-            type= 'text'
-            value= {postImage}
-            placeholder= 'Image URL'
-            onChange={handleImage}>
-                
-            </TextField>
-              <br/>
-            <TextField
-            variant='filled'
-            className='InputFields'
-            label='Description'
-            name= 'addDescription'
-            multiline
-            rows={7}
-            type= 'text'
-            value= {postDescription}
-            placeholder= 'Description'
-            onChange={handleDescription}>
-                
-            </TextField>
-            <br/>
-            <TextField
-            variant='filled'
-            className='InputFields'
-            label='Price'
-            name= 'addPrice'
-            type= 'text'
-            value= {postPrice}
-            placeholder= 'Price'
-            onChange={handlePrice}>
-                
-            </TextField>
-            </Grid>
-            <br/>
-            <div id='formBtns'>
-            <Button className='FormSubmission' variant='contained' color='primary' size='large' type='submit' onClick={handleSave}> Submit
-            </Button>
-            &nbsp;
-            <Button className='FormSubmission' variant='contained' color='secondary' size='large' onClick={handleCancel}> Cancel </Button>
-            </div>
-        </form>
-        
-    </Card>
+    <div className="page page_narrow">
+      <div className="page-header">
+        <div>
+          <h1>Create a listing</h1>
+          <p className="page-lede">
+            Fields marked with * are required.
+          </p>
+        </div>
+      </div>
+      <Card className="posting-form-card">
+        <ListingForm
+          idPrefix="new-listing"
+          submitLabel="Post listing"
+          submittingLabel="Posting…"
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
+      </Card>
+    </div>
   );
 }
 
