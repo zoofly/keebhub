@@ -1,0 +1,63 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // One Worker serves the SPA as static assets and the API under /api/*.
+  "name": "keebhub",
+  "main": "./src/worker/index.ts",
+  // Not later than the workerd bundled with @cloudflare/vite-plugin, so local
+  // dev, preview and tests all run the same runtime behaviour. Bump it (and
+  // re-run the tests) when Dependabot updates the Cloudflare packages.
+  "compatibility_date": "2026-10-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    // The Vite plugin builds the client into dist/client and points the
+    // deployed Worker at it; this path is what plain `wrangler` commands use.
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    // Only API requests invoke the Worker; every other path is served from
+    // the asset store (index.html for unknown paths), which is free.
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "keebhub-db",
+      // PLACEHOLDER. Replace with the id printed by
+      // `npx wrangler d1 create keebhub-db` before the first deploy.
+      // Local dev, preview and tests use a local D1 and ignore this value.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Coarse per-location guard for /api/auth/* (Phase B2). The authoritative
+  // throttle is the auth_throttle table in D1. If this binding turns out to
+  // be unavailable on the Free plan, delete it; the code feature-detects it.
+  "ratelimits": [
+    {
+      "name": "AUTH_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ],
+  // Daily purge of expired sessions and throttle rows (Phase B2).
+  "triggers": { "crons": ["17 3 * * *"] },
+  "vars": {
+    // Public Turnstile site key (Phase B2/F2). Set the real widget's site key
+    // before the first deploy; locally, override it in .dev.vars with one of
+    // Cloudflare's documented test keys (see .dev.vars.example).
+    "TURNSTILE_SITE_KEY": "REPLACE_WITH_TURNSTILE_SITE_KEY"
+  },
+  // Secrets never go in this file. Deployed: `npx wrangler secret put <NAME>`.
+  // Local: .dev.vars (git-ignored), copied from .dev.vars.example.
+  // Listing the names here (Phase B2 adds PASSWORD_PEPPER_V1 and
+  // TURNSTILE_SECRET_KEY) makes `wrangler types` ignore whatever happens to
+  // be in a developer's .dev.vars, so the generated Env is the same everywhere.
+  "secrets": { "required": [] },
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true },
+    "traces": { "enabled": true, "head_sampling_rate": 0.1 }
+  },
+  "upload_source_maps": false
+}

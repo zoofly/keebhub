@@ -65,3 +65,13 @@ typings/
 .env
 
 # commit package-lock.json so installs are reproducible and auditable
+# Cloudflare / Vite rewrite
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
