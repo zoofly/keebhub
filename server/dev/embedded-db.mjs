@@ -6,9 +6,10 @@
 //   npm install embedded-postgres@17.10.0-beta.17 bcryptjs@2.4.3
 //   node embedded-db.mjs /path/to/keebhub/database.sql [--reset]
 //
-// Env: PGPORT (default 5432), SEED_POSTINGS (default 100), SEED_SWITCHES (30)
+// Env: PGPASSWORD and BENCH_PASSWORD (required, pick your own; never commit
+// them), PGPORT (default 5432), SEED_POSTINGS (default 100), SEED_SWITCHES (30)
 // Data lives in ./data next to where you run it; --reset wipes and reseeds.
-// Login for the seeded user: bench / benchpassword
+// Seeded app login: bench / $BENCH_PASSWORD
 import EmbeddedPostgres from 'embedded-postgres';
 import bcrypt from 'bcryptjs';
 import fs from 'node:fs';
@@ -20,6 +21,12 @@ if (!schemaFile) {
   process.exit(1);
 }
 const reset = process.argv.includes('--reset');
+const dbPassword = process.env.PGPASSWORD;
+const benchPassword = process.env.BENCH_PASSWORD;
+if (!dbPassword || !benchPassword) {
+  console.error('set PGPASSWORD and BENCH_PASSWORD first (see README)');
+  process.exit(1);
+}
 const port = Number(process.env.PGPORT || 5432);
 const dataDir = path.resolve('data');
 const nPostings = Number(process.env.SEED_POSTINGS || 100);
@@ -31,7 +38,7 @@ const fresh = !fs.existsSync(path.join(dataDir, 'PG_VERSION'));
 const pg = new EmbeddedPostgres({
   databaseDir: dataDir,
   user: 'postgres',
-  password: 'postgres',
+  password: dbPassword,
   port,
   persistent: true,
   onLog: () => {},
@@ -47,7 +54,7 @@ if (fresh) {
   await client.query(fs.readFileSync(schemaFile, 'utf8'));
 
   // bcryptjs and native bcrypt hashes are interchangeable
-  const hash = bcrypt.hashSync('benchpassword', 10);
+  const hash = bcrypt.hashSync(benchPassword, 10);
   await client.query(
     `INSERT INTO "user" (username, password)
      SELECT 'user' || g, $1 FROM generate_series(1, 20) g`,
@@ -75,10 +82,10 @@ if (fresh) {
     [nSwitches]
   );
   await client.end();
-  console.log(`seeded: 21 users (bench/benchpassword), ${nPostings} postings, ${nSwitches} switches`);
+  console.log(`seeded: 21 users (login: bench), ${nPostings} postings, ${nSwitches} switches`);
 }
 
-console.log(`postgres ready: postgres://postgres:postgres@localhost:${port}/keebhub (Ctrl-C to stop)`);
+console.log(`postgres ready on localhost:${port}, database keebhub, user postgres (Ctrl-C to stop)`);
 
 const shutdown = async () => {
   await pg.stop();
