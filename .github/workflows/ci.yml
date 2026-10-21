@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, test, audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+
+      - name: Lint and format (Biome)
+        run: npx biome ci .
+
+      - name: Generated Worker types are up to date
+        run: npm run cf-typegen:check
+
+      - name: No SQL built with template literals
+        run: |
+          if grep -rnE 'prepare\(\s*`[^`]*\$\{' src/worker; then
+            echo "::error::Use ? placeholders with .bind() instead of interpolating into SQL"
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit and Worker tests (Vitest, workerd + local D1)
+        run: npm test
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke e2e (vite build + vite preview + local D1)
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+
+  legacy:
+    # The CRA + Express app in legacy/ stays tested until cutover.
+    name: Legacy server tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: legacy/package-lock.json
+
+      - name: Install
+        working-directory: legacy
+        run: npm ci
+
+      - name: Server route tests
+        working-directory: legacy
+        run: npm run test:server
+
+  deploy:
+    # Inert until Kash sets it up: runs only for pushes to main, waits for
+    # approval in the `production` environment, and skips itself while the
+    # Cloudflare secrets are missing. Fails if wrangler.jsonc still has the
+    # placeholder D1 id.
+    name: Deploy to Cloudflare
+    needs: [check, legacy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check deploy prerequisites
+        id: gate
+        env:
+          HAS_CLOUDFLARE_SECRETS: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: |
+          if [ "$HAS_CLOUDFLARE_SECRETS" != "true" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not set; skipping deploy."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif grep -q '"database_id": "00000000-0000-0000-0000-000000000000"' wrangler.jsonc; then
+            echo "::error::wrangler.jsonc still has the placeholder D1 database_id."
+            exit 1
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install and build
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Apply D1 migrations (must be backward compatible with the running Worker)
+        if: steps.gate.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply DB --remote
+
+      - name: Deploy
+        if: steps.gate.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
