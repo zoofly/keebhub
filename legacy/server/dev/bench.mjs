@@ -2,7 +2,7 @@
 // copy into the same scratch directory as embedded-db.mjs and
 //   npm install autocannon@7
 //   node bench.mjs http://localhost:5055 [label] [seconds=15] [connections=50]
-// ONLY=<regex> limits which scenarios run. Logs in as bench / benchpassword.
+// ONLY=<regex> limits which scenarios run. Logs in as bench / $BENCH_PASSWORD.
 // Start the server with AUTH_RATE_LIMIT_MAX=100000000 to measure login
 // throughput instead of the rate limiter's 429s.
 import autocannon from 'autocannon';
@@ -14,7 +14,11 @@ if (!base) {
 }
 const duration = Number(dur);
 const connections = Number(conns);
-const creds = JSON.stringify({ username: 'bench', password: 'benchpassword' });
+if (!process.env.BENCH_PASSWORD) {
+  console.error('set BENCH_PASSWORD to the one embedded-db.mjs seeded');
+  process.exit(1);
+}
+const creds = JSON.stringify({ username: 'bench', password: process.env.BENCH_PASSWORD });
 const only = process.env.ONLY ? new RegExp(process.env.ONLY) : null;
 
 const login = await fetch(`${base}/api/user/login`, {

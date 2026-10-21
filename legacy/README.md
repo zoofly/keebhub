@@ -92,7 +92,7 @@ npm run test:server
 This runs `server/test/*.test.js` with `node:test` and supertest against the real Express app and an in-memory database ([pg-mem](https://github.com/oguimbal/pg-mem)), so no Postgres is needed. To run the same tests against a real Postgres, point `TEST_DATABASE_URL` at a **throwaway** database (its keebhub tables are dropped and recreated):
 
 ```
-TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/keebhub_test npm run test:server
+PGPASSWORD=<your local db password> TEST_DATABASE_URL=postgres://postgres@localhost:5432/keebhub_test npm run test:server
 ```
 
 `npm test` still runs the React tests only.
@@ -108,13 +108,15 @@ npm install embedded-postgres@17.10.0-beta.17 bcryptjs@2.4.3 autocannon@7
 # only if npm skipped install scripts (it prints an install-scripts warning):
 (cd node_modules/@embedded-postgres/darwin-arm64 && node scripts/hydrate-symlinks.js)
 cp /path/to/keebhub/server/dev/*.mjs .
+# throwaway local passwords; keep them in your shell, never in the repo
+export PGPASSWORD=$(openssl rand -hex 16) BENCH_PASSWORD=$(openssl rand -hex 16)
 node embedded-db.mjs /path/to/keebhub/database.sql --reset
 ```
 
-(Use the `@embedded-postgres/<platform>` folder that matches your machine.) It listens on port 5432 (`PGPORT=5433` to change it), creates and seeds a `keebhub` database (21 users, 100 postings, 30 switches; `SEED_POSTINGS=2000` for more) and keeps running until Ctrl-C. Log in as `bench` / `benchpassword`. Then, in the repo:
+(Use the `@embedded-postgres/<platform>` folder that matches your machine.) It listens on port 5432 (`PGPORT=5433` to change it), creates and seeds a `keebhub` database (21 users, 100 postings, 30 switches; `SEED_POSTINGS=2000` for more) and keeps running until Ctrl-C. Log in as `bench` with your `$BENCH_PASSWORD`. Then, in the repo (same shell, so `PGPASSWORD` is set):
 
 ```
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/keebhub PORT=5055 npm run server
+PGHOST=localhost PGUSER=postgres PGDATABASE=keebhub PORT=5055 npm run server
 ```
 
 ## Load testing
