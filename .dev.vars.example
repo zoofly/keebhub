@@ -1,0 +1,13 @@
+# Local-only Worker secrets and var overrides for `npm run dev` / `vite preview`.
+# Copy to .dev.vars (git-ignored) and fill in. Never commit real values.
+# Deployed values are set with `npx wrangler secret put <NAME>` instead.
+#
+# Not used until Phase B2 (auth).
+
+# 32 random bytes: generate with `openssl rand -base64 32`
+PASSWORD_PEPPER_V1=<generate: openssl rand -base64 32>
+
+# Turnstile: use Cloudflare's dummy test keys for local development, listed at
+# https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+TURNSTILE_SITE_KEY=<turnstile test site key from the page above>
+TURNSTILE_SECRET_KEY=<turnstile test secret key from the page above>
