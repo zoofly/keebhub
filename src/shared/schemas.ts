@@ -256,3 +256,64 @@ export const Health = z.object({
   status: z.literal("ok"),
 });
 export type Health = z.infer<typeof Health>;
+
+// ---------------------------------------------------------------------------
+// Added in the backend track (B1-B4). Additive only.
+// ---------------------------------------------------------------------------
+
+/** Body of 200/201 responses from register and login. */
+export const UserResponse = z.object({ user: User });
+export type UserResponse = z.infer<typeof UserResponse>;
+
+/** A posting as the API returns it: the seller's username and nothing else about them. */
+export const PostingWithSeller = Posting.extend({
+  sellerUsername: z.string(),
+});
+export type PostingWithSeller = z.infer<typeof PostingWithSeller>;
+
+export const PostingPage = page(PostingWithSeller);
+export type PostingPage = z.infer<typeof PostingPage>;
+
+/** A posting in the user's saved list, with when it was saved. */
+export const SavedPosting = PostingWithSeller.extend({
+  savedAt: z.iso.datetime(),
+});
+export type SavedPosting = z.infer<typeof SavedPosting>;
+
+export const SavedPostingPage = page(SavedPosting);
+export type SavedPostingPage = z.infer<typeof SavedPostingPage>;
+
+/** Body of PUT /api/me/saved/:postingId. */
+export const SavedListing = z.object({
+  postingId: z.int().positive(),
+  savedAt: z.iso.datetime(),
+});
+export type SavedListing = z.infer<typeof SavedListing>;
+
+export const SwitchList = z.object({ items: z.array(Switch) });
+export type SwitchList = z.infer<typeof SwitchList>;
+
+/** Body of POST /api/auth/password. */
+export const ChangePasswordInput = z.object({
+  currentPassword: z
+    .string()
+    .normalize("NFC")
+    .min(1)
+    .max(PASSWORD_MAX * 4),
+  newPassword: Password,
+});
+export type ChangePasswordInput = z.infer<typeof ChangePasswordInput>;
+
+/** Body of DELETE /api/me: the account password, to confirm. */
+export const DeleteAccountInput = z.object({
+  password: z
+    .string()
+    .normalize("NFC")
+    .min(1)
+    .max(PASSWORD_MAX * 4),
+});
+export type DeleteAccountInput = z.infer<typeof DeleteAccountInput>;
+
+/** GET /api/config: public settings the SPA needs at runtime. */
+export const PublicConfig = z.object({ turnstileSiteKey: z.string() });
+export type PublicConfig = z.infer<typeof PublicConfig>;
