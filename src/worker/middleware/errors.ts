@@ -1,12 +1,12 @@
-import type { Context } from "hono";
+import type { Context, Env as HonoEnv } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { ApiError, ErrorCode } from "../../shared/schemas";
 import type { AppEnv } from "../env";
 
 /** Builds the `{ error: { code, message } }` body every API error uses. */
-export function jsonError<S extends ContentfulStatusCode>(
-  c: Context<AppEnv>,
+export function jsonError<E extends HonoEnv, S extends ContentfulStatusCode>(
+  c: Context<E>,
   status: S,
   code: ErrorCode,
   message: string,

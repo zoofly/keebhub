@@ -1,39 +1,69 @@
 import { Hono } from "hono";
-import type { Health } from "../shared/schemas";
+import { bodyLimit } from "hono/body-limit";
+import { secureHeaders } from "hono/secure-headers";
+import { BODY_LIMIT_BYTES } from "../shared/limits";
+import { purgeExpiredSessions } from "./auth/session";
+import { purgeThrottleStatement } from "./db/throttle";
 import type { AppEnv } from "./env";
 import { jsonError, notFound, onError } from "./middleware/errors";
+import { jsonOnly, noStoreByDefault, originCheck } from "./middleware/security";
+import { loadSession } from "./middleware/session";
+import { authRoutes } from "./routes/auth";
+import { meRoutes } from "./routes/me";
+import { postingRoutes } from "./routes/postings";
+import { publicRoutes } from "./routes/public";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
 app.notFound(notFound);
 app.onError(onError);
 
+app.use(
+  secureHeaders({
+    // API responses are JSON; nothing in them should ever render or frame.
+    contentSecurityPolicy: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+  }),
+);
+app.use(noStoreByDefault);
+app.use(
+  bodyLimit({
+    maxSize: BODY_LIMIT_BYTES,
+    onError: (c) => jsonError(c, 413, "payload_too_large", "Request body is too large"),
+  }),
+);
+app.use(jsonOnly);
+app.use(originCheck);
+app.use(loadSession);
+
 // Routes are chained so `AppType` carries their types to the client (hc).
-const routes = app.get("/health", async (c) => {
-  c.header("Cache-Control", "no-store");
-  try {
-    await c.env.DB.prepare("SELECT 1").first();
-  } catch (err) {
-    console.error(
-      JSON.stringify({
-        message: "health check failed",
-        cfRay: c.req.header("cf-ray") ?? null,
-        error: err instanceof Error ? err.message : String(err),
-      }),
-    );
-    return jsonError(c, 503, "unavailable", "Database unavailable");
-  }
-  return c.json({ status: "ok" } satisfies Health, 200);
-});
+const routes = app
+  .route("/", publicRoutes)
+  .route("/auth", authRoutes)
+  .route("/postings", postingRoutes)
+  .route("/me", meRoutes);
 
 export type AppType = typeof routes;
+
+/** Daily cron: drop expired sessions and finished throttle windows. */
+export async function purgeExpired(db: D1Database): Promise<void> {
+  await db.batch([purgeExpiredSessions(db), purgeThrottleStatement(db)]);
+}
 
 export default {
   fetch: app.fetch,
 
-  // Daily cron (wrangler.jsonc `triggers`). Phase B2 adds the purge of
-  // expired sessions and auth_throttle rows here.
-  async scheduled(controller) {
-    console.log(JSON.stringify({ message: "scheduled run", cron: controller.cron }));
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(
+      purgeExpired(env.DB).then(
+        () => console.log(JSON.stringify({ message: "purge complete", cron: controller.cron })),
+        (err: unknown) =>
+          console.error(
+            JSON.stringify({
+              message: "purge failed",
+              error: err instanceof Error ? err.message : String(err),
+            }),
+          ),
+      ),
+    );
   },
 } satisfies ExportedHandler<Env>;
