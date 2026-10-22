@@ -50,10 +50,13 @@
   },
   // Secrets never go in this file. Deployed: `npx wrangler secret put <NAME>`.
   // Local: .dev.vars (git-ignored), copied from .dev.vars.example.
-  // Listing the names here (Phase B2 adds PASSWORD_PEPPER_V1 and
-  // TURNSTILE_SECRET_KEY) makes `wrangler types` ignore whatever happens to
-  // be in a developer's .dev.vars, so the generated Env is the same everywhere.
-  "secrets": { "required": [] },
+  // Listing the names here makes `wrangler types` ignore whatever happens to
+  // be in a developer's .dev.vars, so the generated Env is the same
+  // everywhere, and warns locally when one is missing.
+  // - PASSWORD_PEPPER_V1: 32 random bytes (openssl rand -base64 32). Keep an
+  //   offline copy: losing it locks every password account out.
+  // - TURNSTILE_SECRET_KEY: the Turnstile widget's secret key.
+  "secrets": { "required": ["PASSWORD_PEPPER_V1", "TURNSTILE_SECRET_KEY"] },
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": true },

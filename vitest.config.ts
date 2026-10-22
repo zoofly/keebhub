@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import react from "@vitejs/plugin-react";
@@ -15,7 +16,15 @@ export default defineConfig(async () => {
           plugins: [
             cloudflareTest({
               wrangler: { configPath: "./wrangler.jsonc" },
-              miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
+              miniflare: {
+                bindings: {
+                  TEST_MIGRATIONS: migrations,
+                  // Random per run: nothing depends on the values, and
+                  // outbound fetches (Turnstile, HIBP) are mocked in tests.
+                  PASSWORD_PEPPER_V1: randomBytes(32).toString("base64"),
+                  TURNSTILE_SECRET_KEY: randomBytes(16).toString("hex"),
+                },
+              },
             }),
           ],
           test: {

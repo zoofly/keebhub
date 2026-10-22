@@ -2,7 +2,9 @@
 # Copy to .dev.vars (git-ignored) and fill in. Never commit real values.
 # Deployed values are set with `npx wrangler secret put <NAME>` instead.
 #
-# Not used until Phase B2 (auth).
+# Register, login, password change and account delete need all three.
+# With Turnstile's dummy keys the widget and siteverify always pass (local
+# dev still calls siteverify over the network). Tests never read this file.
 
 # 32 random bytes: generate with `openssl rand -base64 32`
 PASSWORD_PEPPER_V1=<generate: openssl rand -base64 32>
