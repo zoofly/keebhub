@@ -1,6 +1,16 @@
 # Headers for static asset responses (not for /api/*, which the Worker sets).
-# The Content-Security-Policy (Report-Only first) is added in Phase F1.
+#
+# The CSP is Report-Only until cutover (plan §4): browsers log violations to
+# the console without blocking anything, and the e2e suite fails on any.
+# At cutover, rename the header to Content-Security-Policy and add
+# `upgrade-insecure-requests` (browsers ignore it in Report-Only).
+# - No 'unsafe-inline' anywhere: Vite emits no inline scripts, Tailwind is a
+#   static stylesheet, the font is self-hosted, and the UI injects no <style>.
+# - Turnstile needs script-src and frame-src https://challenges.cloudflare.com.
+# - img-src allows any https: image (listing photos are user-supplied URLs),
+#   never http:.
 /*
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; img-src 'self' https: data:; font-src 'self'; connect-src 'self'; frame-src https://challenges.cloudflare.com; worker-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

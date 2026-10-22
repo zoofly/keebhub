@@ -25,12 +25,14 @@ export default defineConfig(async () => {
           },
         },
         {
-          // React components in jsdom.
+          // React components in jsdom, with the API mocked by msw/node
+          // (the same handlers the dev and e2e builds use).
           plugins: [react()],
           test: {
             name: "client",
             environment: "jsdom",
             include: ["src/client/**/*.test.{ts,tsx}"],
+            setupFiles: ["./src/client/test/setup.ts"],
           },
         },
       ],
