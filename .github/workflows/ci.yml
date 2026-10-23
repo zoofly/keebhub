@@ -66,37 +66,13 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  legacy:
-    # The CRA + Express app in legacy/ stays tested until cutover.
-    name: Legacy server tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: legacy/package-lock.json
-
-      - name: Install
-        working-directory: legacy
-        run: npm ci
-
-      - name: Server route tests
-        working-directory: legacy
-        run: npm run test:server
-
   deploy:
     # Inert until Kash sets it up: runs only for pushes to main, waits for
     # approval in the `production` environment, and skips itself while the
     # Cloudflare secrets are missing. Fails if wrangler.jsonc still has the
     # placeholder D1 id.
     name: Deploy to Cloudflare
-    needs: [check, legacy]
+    needs: [check]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
     runs-on: ubuntu-latest

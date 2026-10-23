@@ -22,8 +22,6 @@ updates:
         dependency-type: development
         patterns:
           - "*"
-    # legacy/ is not listed: it is deleted at cutover. GitHub's security
-    # updates still cover its lockfile.
 
   - package-ecosystem: github-actions
     directory: /

@@ -1,5 +1,5 @@
 // Turns API errors into messages for people, ported from
-// legacy/src/utils/apiErrors.js and errors.reducer.js. Never includes
+// the legacy app's apiErrors.js and errors.reducer.js. Never includes
 // request bodies.
 import { isApiError } from "../api";
 

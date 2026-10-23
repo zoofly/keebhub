@@ -1,10 +1,10 @@
-/* Only scan the client for class names (not legacy/ or docs/). */
+/* Only scan the client for class names (not docs/). */
 @import "tailwindcss" source(none);
 @import "@fontsource/squada-one/latin-400.css";
 @source "./";
 
 /*
- * Design tokens, ported from legacy/src/theme.js and App.css. Text pairs are
+ * Design tokens, ported from the legacy app's theme.js and App.css. Text pairs are
  * checked for WCAG AA (4.5:1) in src/client/lib/contrast.test.ts.
  */
 @theme {
