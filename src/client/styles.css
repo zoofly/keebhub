@@ -1,0 +1,78 @@
+/* Only scan the client for class names (not legacy/ or docs/). */
+@import "tailwindcss" source(none);
+@import "@fontsource/squada-one/latin-400.css";
+@source "./";
+
+/*
+ * Design tokens, ported from legacy/src/theme.js and App.css. Text pairs are
+ * checked for WCAG AA (4.5:1) in src/client/lib/contrast.test.ts.
+ */
+@theme {
+  --color-primary: #5b3f8c;
+  --color-primary-dark: #432c6b;
+  --color-primary-soft: #ece6f6;
+  --color-page: #f7f5fb;
+  --color-surface: #ffffff;
+  --color-ink: #1f1a2b;
+  --color-muted: #544b66;
+  --color-line: #ddd5ea;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fdecea;
+  --color-success: #1e6b3a;
+  --color-success-soft: #e6f4ea;
+  --color-focus: #1d4ed8;
+  --color-accent: #ffd166;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: "Squada One", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    @apply bg-page font-sans text-ink antialiased;
+    line-height: 1.5;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-heading font-normal tracking-wide text-ink;
+    line-height: 1.15;
+  }
+
+  /* Links in text are underlined, not told apart by color alone (WCAG 1.4.1).
+     Button-styled links and nav items opt out with no-underline. */
+  a {
+    @apply text-primary underline underline-offset-2 hover:text-primary-dark;
+  }
+
+  /* Keyboard focus is always visible; mouse clicks don't show a ring. */
+  :focus-visible {
+    @apply outline-3 outline-offset-2 outline-focus;
+  }
+
+  /* <main> receives focus on route changes but needs no ring. */
+  main:focus {
+    outline: none;
+  }
+
+  dialog::backdrop {
+    background: rgb(31 26 43 / 0.5);
+  }
+
+  /* biome-ignore-start lint/complexity/noImportantStyles: reduced motion must beat every utility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  /* biome-ignore-end lint/complexity/noImportantStyles: reduced motion must beat every utility */
+}
