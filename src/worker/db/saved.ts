@@ -44,6 +44,17 @@ export async function listSaved(
   return results;
 }
 
+/** Every posting id the user has saved, newest save first. */
+export async function listSavedIds(db: D1Database, userId: number): Promise<number[]> {
+  const { results } = await db
+    .prepare(
+      "SELECT posting_id FROM saved_listings WHERE user_id = ? ORDER BY created_at DESC, posting_id DESC",
+    )
+    .bind(userId)
+    .all<{ posting_id: number }>();
+  return results.map((row) => row.posting_id);
+}
+
 export type SaveResult =
   | { status: "created" | "exists"; saved: SavedListing }
   | { status: "missing" };

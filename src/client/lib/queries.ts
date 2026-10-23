@@ -69,16 +69,12 @@ export const savedQuery = infiniteQueryOptions({
 });
 
 /**
- * Ids of the signed-in user's saved postings, for the Save toggles. Reads up
- * to 100 (the API's page maximum); a posting saved beyond that shows as not
- * saved, and saving it again is harmless because PUT is idempotent.
+ * Every posting id the signed-in user has saved (GET /api/me/saved/ids, no
+ * cap), so the Save toggles are right on every page of every list.
  */
 export const savedIdsQuery = queryOptions({
   queryKey: keys.savedIds,
-  queryFn: async ({ signal }) => {
-    const page = await apiClient.getSaved({ limit: 100, signal });
-    return new Set(page.items.map((item) => item.id));
-  },
+  queryFn: async ({ signal }) => new Set(await apiClient.getSavedIds(signal)),
 });
 
 export const postingQuery = (id: number) =>

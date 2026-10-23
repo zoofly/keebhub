@@ -1,6 +1,13 @@
 import { HttpResponse, http } from "msw";
 import { describe, expect, it, vi } from "vitest";
-import { ApiRequestError, getMe, getSwitches, savePosting, unsavePosting } from "./api";
+import {
+  ApiRequestError,
+  getMe,
+  getSavedIds,
+  getSwitches,
+  savePosting,
+  unsavePosting,
+} from "./api";
 import { db } from "./mocks/db";
 import { server } from "./mocks/node";
 import { createQueryClient } from "./queryClient";
@@ -42,6 +49,20 @@ describe("api module", () => {
     expect(await savePosting(5)).toMatchObject({ postingId: 5 }); // 200 the second time
     await unsavePosting(5);
     await expect(unsavePosting(5)).resolves.toBeUndefined(); // 404 -> fine
+  });
+
+  it("lists every saved id, not just the first page", async () => {
+    db.state.sessionUserId = 1;
+    const before = await getSavedIds();
+    await savePosting(5);
+    await savePosting(7);
+    expect(new Set(await getSavedIds())).toEqual(new Set([5, 7, ...before]));
+    server.use(
+      http.get("/api/me/saved/ids", () =>
+        HttpResponse.json({ ids: Array.from({ length: 150 }, (_, i) => i + 1) }),
+      ),
+    );
+    expect(await getSavedIds()).toHaveLength(150);
   });
 
   it("sends bodyless writes without a Content-Type", async () => {

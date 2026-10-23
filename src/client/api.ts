@@ -22,6 +22,7 @@ import {
   PostingWithSeller,
   PublicConfig,
   type RegisterInput,
+  SavedIds,
   SavedListing,
   SavedPostingPage,
   type Switch,
@@ -258,6 +259,12 @@ export function getMyPostings({ signal, ...page }: PageParams) {
 
 export function getSaved({ signal, ...page }: PageParams) {
   return request("GET", `/api/me/saved?${pageQuery(page)}`, { schema: SavedPostingPage, signal });
+}
+
+/** Every posting id the signed-in user has saved, for the Save toggles. */
+export async function getSavedIds(signal?: AbortSignal): Promise<number[]> {
+  const { ids } = await request("GET", "/api/me/saved/ids", { schema: SavedIds, signal });
+  return ids;
 }
 
 /** 201 when added, 200 if it was already saved; both are success. */

@@ -5,6 +5,7 @@ import {
   ApiError,
   PostingPage,
   PostingWithSeller,
+  SavedIds,
   SavedListing,
   SavedPostingPage,
 } from "../../shared/schemas";
@@ -332,5 +333,34 @@ describe("saved listings", () => {
     );
     expect(second.items.map((p) => p.title)).toEqual(["S1"]);
     expect(second.nextCursor).toBeNull();
+  });
+});
+
+describe("GET /api/me/saved/ids", () => {
+  it("returns every saved id for the user only, beyond one page, newest save first", async () => {
+    const { cookie } = await registerUser("idlister");
+    const { cookie: other } = await registerUser("idother");
+    const ids: number[] = [];
+    for (let i = 0; i < 105; i += 1) {
+      const posting = await create(alice, { title: `Saved ${i}` });
+      ids.push(posting.id);
+      expect((await api(`/api/me/saved/${posting.id}`, { method: "PUT", cookie })).status).toBe(
+        201,
+      );
+    }
+    await api(`/api/me/saved/${ids[0]}`, { method: "PUT", cookie: other });
+
+    const res = await api("/api/me/saved/ids", { cookie });
+    expect(res.status).toBe(200);
+    const body = SavedIds.parse(await res.json());
+    expect(body.ids).toHaveLength(105);
+    expect(new Set(body.ids)).toEqual(new Set(ids));
+    expect(
+      SavedIds.parse(await (await api("/api/me/saved/ids", { cookie: other })).json()).ids,
+    ).toEqual([ids[0]]);
+  });
+
+  it("requires a session", async () => {
+    expect((await api("/api/me/saved/ids")).status).toBe(401);
   });
 });

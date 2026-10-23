@@ -20,6 +20,7 @@ import {
   PostingWithSeller,
   PublicConfig,
   RegisterInput,
+  SavedIds,
   SavedListing,
   SavedPostingPage,
   SwitchList,
@@ -367,6 +368,18 @@ export const handlers = [
         return posting ? [{ ...withSeller(posting), savedAt: row.savedAt }] : [];
       });
       return respond(SavedPostingPage, paginate(items, new URL(request.url)));
+    }),
+  ),
+
+  http.get(
+    "/api/me/saved/ids",
+    route(() => {
+      const user = requireUser();
+      const ids = db.state.saved
+        .filter((row) => row.userId === user.id)
+        .sort((a, b) => b.savedAt.localeCompare(a.savedAt))
+        .map((row) => row.postingId);
+      return respond(SavedIds, { ids });
     }),
   ),
 

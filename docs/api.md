@@ -64,6 +64,7 @@ Limits: 10 failed logins for a username in 15 minutes lock that username for 15 
 |---|---|---|---|
 | `GET /api/me/postings` | `?limit&cursor` | 200 `PostingPage` of the user's postings, newest first | 400, 401 |
 | `GET /api/me/saved` | `?limit&cursor` | 200 `SavedPostingPage`, most recently saved first | 400, 401 |
+| `GET /api/me/saved/ids` | | 200 `SavedIds` `{ ids: number[] }`: every saved posting id, newest save first, no cap (for Save toggles) | 401 |
 | `PUT /api/me/saved/:postingId` | (no body) | 201 `SavedListing` when added, 200 `SavedListing` if already saved | 400, 401, 404 no such posting |
 | `DELETE /api/me/saved/:postingId` | | 204 | 400, 401, 404 not saved |
 | `DELETE /api/me` | `DeleteAccountInput` `{ password }` | 204. Deletes the account with its postings, saved listings and sessions; clears the cookie | 400 (`fields.password` wrong), 401, 429 |

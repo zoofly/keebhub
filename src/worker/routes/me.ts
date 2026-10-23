@@ -6,7 +6,7 @@ import { logAuthEvent } from "../auth/log";
 import { peppersFromEnv, verifyPassword } from "../auth/password";
 import { clearSessionCookie } from "../auth/session";
 import { listPostings, toPosting } from "../db/postings";
-import { listSaved, savePosting, toSavedPosting, unsavePosting } from "../db/saved";
+import { listSaved, listSavedIds, savePosting, toSavedPosting, unsavePosting } from "../db/saved";
 import { LOGIN_USER_RULE, lockedFor, loginUserKey, recordAttemptStatement } from "../db/throttle";
 import { deleteUser, findCredentialsById } from "../db/users";
 import type { AppEnv } from "../env";
@@ -57,6 +57,12 @@ export const meRoutes = new Hono<AppEnv>()
     const nextCursor =
       rows.length > limit && last ? encodeSavedCursor(last.saved_at, last.id) : null;
     return c.json({ items: page.map(toSavedPosting), nextCursor }, 200);
+  })
+
+  // All saved posting ids (compact), for the Save toggles on any page.
+  .get("/saved/ids", async (c) => {
+    const ids = await listSavedIds(c.env.DB, c.get("user").id);
+    return c.json({ ids }, 200);
   })
 
   // Idempotent save: 201 when added, 200 when already saved.

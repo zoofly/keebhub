@@ -290,6 +290,10 @@ export const SavedListing = z.object({
 });
 export type SavedListing = z.infer<typeof SavedListing>;
 
+/** GET /api/me/saved/ids: every posting id the user has saved (no cap). */
+export const SavedIds = z.object({ ids: z.array(z.int().positive()) });
+export type SavedIds = z.infer<typeof SavedIds>;
+
 export const SwitchList = z.object({ items: z.array(Switch) });
 export type SwitchList = z.infer<typeof SwitchList>;
 
