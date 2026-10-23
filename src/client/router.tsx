@@ -10,18 +10,12 @@ import { IdParam } from "../shared/schemas";
 import { AppLoading, Layout } from "./components/Layout";
 import { meQuery } from "./lib/queries";
 import { loginPathFor, safeNextPath } from "./lib/safeNext";
-import { AboutPage } from "./routes/about";
-import { LoginPage, RegisterPage } from "./routes/auth";
-import { CreatePage } from "./routes/create";
-import { EditPage } from "./routes/edit";
 import { RouteErrorPage } from "./routes/error";
-import { HomePage } from "./routes/home";
-import { ListingPage } from "./routes/listing";
-import { MarketPage } from "./routes/market";
-import { MyListingsPage } from "./routes/mylistings";
 import { NotFoundPage } from "./routes/not-found";
-import { ProfilePage } from "./routes/profile";
-import { SavedPage } from "./routes/saved";
+
+// Pages are code-split: each route's module (and the form and validation
+// code it pulls in) loads on first visit. The layout, error and 404 pages
+// stay in the entry chunk.
 
 const pathOf = (request: Request) => {
   const url = new URL(request.url);
@@ -77,24 +71,62 @@ export function createRoutes(queryClient: QueryClient): RouteObject[] {
           // Pathless so page errors render inside the layout (nav stays usable).
           ErrorBoundary: RouteErrorPage,
           children: [
-            { index: true, Component: HomePage },
-            { path: "about", Component: AboutPage },
-            { path: "login", Component: LoginPage, loader: guestOnly(queryClient) },
-            { path: "register", Component: RegisterPage, loader: guestOnly(queryClient) },
-            { path: "market", Component: MarketPage },
-            { path: "market/:id", Component: ListingPage, loader: validListingId },
+            {
+              index: true,
+              lazy: () => import("./routes/home").then((m) => ({ Component: m.HomePage })),
+            },
+            {
+              path: "about",
+              lazy: () => import("./routes/about").then((m) => ({ Component: m.AboutPage })),
+            },
+            {
+              path: "login",
+              lazy: () => import("./routes/auth").then((m) => ({ Component: m.LoginPage })),
+              loader: guestOnly(queryClient),
+            },
+            {
+              path: "register",
+              lazy: () => import("./routes/auth").then((m) => ({ Component: m.RegisterPage })),
+              loader: guestOnly(queryClient),
+            },
+            {
+              path: "market",
+              lazy: () => import("./routes/market").then((m) => ({ Component: m.MarketPage })),
+            },
+            {
+              path: "market/:id",
+              lazy: () => import("./routes/listing").then((m) => ({ Component: m.ListingPage })),
+              loader: validListingId,
+            },
             {
               path: "market/:id/edit",
-              Component: EditPage,
+              lazy: () => import("./routes/edit").then((m) => ({ Component: m.EditPage })),
               loader: async (args) => {
                 validListingId(args);
                 return protect(args);
               },
             },
-            { path: "create", Component: CreatePage, loader: protect },
-            { path: "mylistings", Component: MyListingsPage, loader: protect },
-            { path: "saved", Component: SavedPage, loader: protect },
-            { path: "profile", Component: ProfilePage, loader: protect },
+            {
+              path: "create",
+              lazy: () => import("./routes/create").then((m) => ({ Component: m.CreatePage })),
+              loader: protect,
+            },
+            {
+              path: "mylistings",
+              lazy: () =>
+                import("./routes/mylistings").then((m) => ({ Component: m.MyListingsPage })),
+              loader: protect,
+            },
+            {
+              path: "saved",
+              lazy: () => import("./routes/saved").then((m) => ({ Component: m.SavedPage })),
+              loader: protect,
+            },
+            {
+              path: "profile",
+              lazy: () => import("./routes/profile").then((m) => ({ Component: m.ProfilePage })),
+              loader: protect,
+            },
             // Old (hash-router) paths.
             { path: "home", loader: () => redirect("/") },
             { path: "registration", loader: () => redirect("/register") },

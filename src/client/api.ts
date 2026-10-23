@@ -36,6 +36,7 @@ import type { AppType } from "../worker/index";
 const client = () =>
   hc<AppType>(typeof window === "undefined" ? "http://localhost" : window.location.origin);
 
+/** Why a request failed. `status` is 0 when the server couldn't be reached. */
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly code: ErrorCode | "network" | "bad_response";

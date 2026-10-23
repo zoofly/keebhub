@@ -51,7 +51,8 @@ describe("Nav", () => {
     await user.click(toggle);
     await user.click(within(mainNav()).getByRole("link", { name: "Market" }));
     await screen.findByRole("heading", { level: 1, name: "Market" });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // The page loads lazily, so the close lands in a later render.
+    await waitFor(() => expect(toggle).toHaveAttribute("aria-expanded", "false"));
   });
 
   it("logs out: clears every cached query and shows the guest nav", async () => {
