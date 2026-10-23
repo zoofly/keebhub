@@ -1,14 +1,11 @@
 // The only module that talks to the API. Everything else calls these
 // functions (usually through the TanStack Query options in lib/queries.ts).
-// The contract is docs/api.md on the backend branch (modernize/backend).
+// The contract is docs/api.md.
 //
-// /api/health goes through the typed Hono RPC client because this branch's
-// Worker already serves it. The other routes aren't in this branch's
-// `AppType` yet, so they use `request()` and validate every response with
-// the shared zod schemas. After the tracks merge, each function body can
-// become the matching `api.api.<route>.$get/$post(...)` call; the
-// signatures and the ApiRequestError contract stay the same, so callers
-// don't change.
+// Every call goes through the typed Hono RPC client (`hc<AppType>`), so
+// paths, params, query strings and JSON bodies are checked against the
+// Worker's routes at compile time. Responses are still validated with the
+// shared zod schemas at runtime, and failures become ApiRequestError.
 import { hc } from "hono/client";
 import type { z } from "zod";
 import {
@@ -32,10 +29,13 @@ import {
 } from "../shared/schemas";
 import type { AppType } from "../worker/index";
 
-/** Typed client for the Worker API (same origin). */
-export const api = hc<AppType>("/");
+/**
+ * Typed client for the Worker API (same origin). Built per call from the
+ * page's origin, which browsers and the jsdom tests both provide.
+ */
+const client = () =>
+  hc<AppType>(typeof window === "undefined" ? "http://localhost" : window.location.origin);
 
-/** Why a request failed. `status` is 0 when the server couldn't be reached. */
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly code: ErrorCode | "network" | "bad_response";
@@ -62,12 +62,6 @@ export class ApiRequestError extends Error {
 export function isApiError(error: unknown, status?: number): error is ApiRequestError {
   return error instanceof ApiRequestError && (status === undefined || error.status === status);
 }
-
-type Method = "GET" | "POST" | "PUT" | "DELETE";
-
-const absolute = (path: string) =>
-  // Relative URLs work in browsers; Node's fetch (component tests) needs an origin.
-  typeof window === "undefined" ? path : new URL(path, window.location.origin).href;
 
 const parseRetryAfter = (value: string | null): number | null => {
   if (!value) {
@@ -98,40 +92,32 @@ async function toError(res: Response): Promise<ApiRequestError> {
 }
 
 /**
- * Sends one JSON request (same origin, so the session cookie goes along)
- * and validates the response with `schema`. Request bodies and responses
- * are never logged.
+ * Runs one hc call and validates the response with `schema`. Request bodies
+ * and responses are never logged. Same-origin fetch: the browser adds
+ * Origin / Sec-Fetch-Site (checked on writes) and sends the session cookie;
+ * hc sends JSON bodies as application/json and bodyless calls without a
+ * Content-Type, which the API allows.
  */
-async function request<S extends z.ZodType>(
-  method: Method,
-  path: string,
-  options: { body?: unknown; schema: S; signal?: AbortSignal | undefined },
+async function send<S extends z.ZodType>(
+  run: (init: RequestInit) => Promise<Response>,
+  options: { schema: S; signal?: AbortSignal | undefined },
 ): Promise<z.output<S>>;
-async function request(
-  method: Method,
-  path: string,
-  options?: { body?: unknown; signal?: AbortSignal | undefined },
+async function send(
+  run: (init: RequestInit) => Promise<Response>,
+  options?: { signal?: AbortSignal | undefined },
 ): Promise<void>;
-async function request(
-  method: Method,
-  path: string,
-  options: { body?: unknown; schema?: z.ZodType; signal?: AbortSignal | undefined } = {},
+async function send(
+  run: (init: RequestInit) => Promise<Response>,
+  options: { schema?: z.ZodType; signal?: AbortSignal | undefined } = {},
 ): Promise<unknown> {
-  // Same-origin fetch: the browser adds Origin / Sec-Fetch-Site, which the
-  // API checks on writes. Bodies are always JSON (anything else is a 415);
-  // bodyless requests send no Content-Type, which the API allows.
-  const init: RequestInit = { method, credentials: "same-origin" };
-  if (options.body !== undefined) {
-    init.headers = { "content-type": "application/json" };
-    init.body = JSON.stringify(options.body);
-  }
+  const init: RequestInit = { credentials: "same-origin" };
   if (options.signal) {
     init.signal = options.signal;
   }
 
   let res: Response;
   try {
-    res = await fetch(absolute(path), init);
+    res = await run(init);
   } catch (err) {
     if (options.signal?.aborted) {
       throw err;
@@ -152,13 +138,11 @@ async function request(
   return parsed.data;
 }
 
-const pageQuery = (params: { limit: number; cursor?: string | undefined }) => {
-  const search = new URLSearchParams({ limit: String(params.limit) });
-  if (params.cursor) {
-    search.set("cursor", params.cursor);
-  }
-  return search.toString();
-};
+/** ?limit=&cursor= as hc query values (strings; no undefined keys). */
+const pageQuery = (params: { limit: number; cursor?: string | undefined }) =>
+  params.cursor
+    ? { limit: String(params.limit), cursor: params.cursor }
+    : { limit: String(params.limit) };
 
 type PageParams = { limit: number; cursor?: string | undefined; signal?: AbortSignal | undefined };
 
@@ -167,7 +151,7 @@ type PageParams = { limit: number; cursor?: string | undefined; signal?: AbortSi
 // ---------------------------------------------------------------------------
 
 export async function getHealth(signal?: AbortSignal): Promise<boolean> {
-  const res = await api.api.health.$get(undefined, signal ? { init: { signal } } : {});
+  const res = await client().api.health.$get(undefined, signal ? { init: { signal } } : {});
   return res.status === 200;
 }
 
@@ -178,7 +162,10 @@ export async function getHealth(signal?: AbortSignal): Promise<boolean> {
 /** The signed-in user, or null when there is no (valid) session. */
 export async function getMe(signal?: AbortSignal): Promise<User | null> {
   try {
-    return await request("GET", "/api/auth/me", { schema: User, signal });
+    return await send((init) => client().api.auth.me.$get(undefined, { init }), {
+      schema: User,
+      signal,
+    });
   } catch (err) {
     if (isApiError(err, 401)) {
       return null;
@@ -188,31 +175,30 @@ export async function getMe(signal?: AbortSignal): Promise<User | null> {
 }
 
 export async function login(input: LoginInput): Promise<User> {
-  const { user } = await request("POST", "/api/auth/login", {
-    body: input,
+  const { user } = await send((init) => client().api.auth.login.$post({ json: input }, { init }), {
     schema: UserResponse,
   });
   return user;
 }
 
 export async function register(input: RegisterInput): Promise<User> {
-  const { user } = await request("POST", "/api/auth/register", {
-    body: input,
-    schema: UserResponse,
-  });
+  const { user } = await send(
+    (init) => client().api.auth.register.$post({ json: input }, { init }),
+    { schema: UserResponse },
+  );
   return user;
 }
 
 export function logout(): Promise<void> {
-  return request("POST", "/api/auth/logout");
+  return send((init) => client().api.auth.logout.$post(undefined, { init }));
 }
 
 export function changePassword(input: ChangePasswordInput): Promise<void> {
-  return request("POST", "/api/auth/password", { body: input });
+  return send((init) => client().api.auth.password.$post({ json: input }, { init }));
 }
 
 export function deleteAccount(input: DeleteAccountInput): Promise<void> {
-  return request("DELETE", "/api/me", { body: input });
+  return send((init) => client().api.me.$delete({ json: input }, { init }));
 }
 
 // ---------------------------------------------------------------------------
@@ -221,36 +207,59 @@ export function deleteAccount(input: DeleteAccountInput): Promise<void> {
 
 /** Runtime settings (the Turnstile site key), so builds aren't per-environment. */
 export function getConfig(signal?: AbortSignal) {
-  return request("GET", "/api/config", { schema: PublicConfig, signal });
+  return send((init) => client().api.config.$get(undefined, { init }), {
+    schema: PublicConfig,
+    signal,
+  });
 }
 
 export async function getSwitches(signal?: AbortSignal): Promise<Switch[]> {
-  const { items } = await request("GET", "/api/switches", { schema: SwitchList, signal });
+  const { items } = await send((init) => client().api.switches.$get(undefined, { init }), {
+    schema: SwitchList,
+    signal,
+  });
   return items;
 }
 
 export function getPostings({ signal, ...page }: PageParams) {
-  return request("GET", `/api/postings?${pageQuery(page)}`, { schema: PostingPage, signal });
+  return send((init) => client().api.postings.$get({ query: pageQuery(page) }, { init }), {
+    schema: PostingPage,
+    signal,
+  });
 }
 
 export function getPosting(id: number, signal?: AbortSignal) {
-  return request("GET", `/api/postings/${id}`, { schema: PostingWithSeller, signal });
+  return send(
+    (init) => client().api.postings[":id"].$get({ param: { id: String(id) } }, { init }),
+    { schema: PostingWithSeller, signal },
+  );
 }
 
 export function createPosting(input: PostingInput) {
-  return request("POST", "/api/postings", { body: input, schema: PostingWithSeller });
+  return send((init) => client().api.postings.$post({ json: input }, { init }), {
+    schema: PostingWithSeller,
+  });
 }
 
 export function updatePosting(id: number, input: PostingInput) {
-  return request("PUT", `/api/postings/${id}`, { body: input, schema: PostingWithSeller });
+  return send(
+    (init) =>
+      client().api.postings[":id"].$put({ param: { id: String(id) }, json: input }, { init }),
+    { schema: PostingWithSeller },
+  );
 }
 
 export function deletePosting(id: number): Promise<void> {
-  return request("DELETE", `/api/postings/${id}`);
+  return send((init) =>
+    client().api.postings[":id"].$delete({ param: { id: String(id) } }, { init }),
+  );
 }
 
 export function getMyPostings({ signal, ...page }: PageParams) {
-  return request("GET", `/api/me/postings?${pageQuery(page)}`, { schema: PostingPage, signal });
+  return send((init) => client().api.me.postings.$get({ query: pageQuery(page) }, { init }), {
+    schema: PostingPage,
+    signal,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -258,18 +267,31 @@ export function getMyPostings({ signal, ...page }: PageParams) {
 // ---------------------------------------------------------------------------
 
 export function getSaved({ signal, ...page }: PageParams) {
-  return request("GET", `/api/me/saved?${pageQuery(page)}`, { schema: SavedPostingPage, signal });
+  return send((init) => client().api.me.saved.$get({ query: pageQuery(page) }, { init }), {
+    schema: SavedPostingPage,
+    signal,
+  });
 }
 
 /** Every posting id the signed-in user has saved, for the Save toggles. */
 export async function getSavedIds(signal?: AbortSignal): Promise<number[]> {
-  const { ids } = await request("GET", "/api/me/saved/ids", { schema: SavedIds, signal });
+  const { ids } = await send((init) => client().api.me.saved.ids.$get(undefined, { init }), {
+    schema: SavedIds,
+    signal,
+  });
   return ids;
 }
 
 /** 201 when added, 200 if it was already saved; both are success. */
 export function savePosting(postingId: number) {
-  return request("PUT", `/api/me/saved/${postingId}`, { schema: SavedListing });
+  return send(
+    (init) =>
+      client().api.me.saved[":postingId"].$put(
+        { param: { postingId: String(postingId) } },
+        { init },
+      ),
+    { schema: SavedListing },
+  );
 }
 
 /**
@@ -278,7 +300,12 @@ export function savePosting(postingId: number) {
  */
 export async function unsavePosting(postingId: number): Promise<void> {
   try {
-    await request("DELETE", `/api/me/saved/${postingId}`);
+    await send((init) =>
+      client().api.me.saved[":postingId"].$delete(
+        { param: { postingId: String(postingId) } },
+        { init },
+      ),
+    );
   } catch (err) {
     if (!isApiError(err, 404)) {
       throw err;
