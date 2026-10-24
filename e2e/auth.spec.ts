@@ -2,6 +2,7 @@ import {
   expect,
   expireSession,
   KASH,
+  logOutInUi,
   mainNav,
   newUser,
   open,
@@ -56,6 +57,7 @@ test("register: a new account is signed in and lands on the market", async ({ pa
   await form.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/market$/);
   await expect(page.getByText(`Welcome to Keebhub, ${username}!`)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Market" })).toBeVisible();
   await openMenuIfNeeded(page);
   await expect(mainNav(page).getByRole("button", { name: "Log out" })).toBeVisible();
   // The password isn't left anywhere in the DOM.
@@ -116,9 +118,7 @@ for (const next of ["//evil.com", "https://evil.com", "/\\evil.com"]) {
 test("logout clears the session; protected pages then redirect to login", async ({ page }) => {
   await signIn(page, KASH.username, "/mylistings");
   await expect(page.getByTestId("listing-card").first()).toBeVisible();
-  await openMenuIfNeeded(page);
-  await mainNav(page).getByRole("button", { name: "Log out" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await logOutInUi(page);
   await expect(page.getByText("You've logged out.")).toBeVisible();
   await openMenuIfNeeded(page);
   await expect(mainNav(page).getByRole("link", { name: "Log in" })).toBeVisible();

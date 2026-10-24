@@ -48,6 +48,8 @@ npm run dev                      # http://localhost:5173
 
 Tests run one at a time against that shared database, and any CSP violation, uncaught error or unexpected console error fails the test. Register and login call Turnstile and the HIBP API from the Worker, so the suite needs network access (`SKIP_REAL_TURNSTILE=1` skips the one test that loads the real widget). `SHOTS_DIR=/tmp/shots npm run e2e -- screenshots` saves screenshots of every page.
 
+To hunt flaky tests, `E2E_CPU_THROTTLE=30 npm run e2e -- --project=mobile --repeat-each=4 --timeout=120000` slows every page's CPU 30x, which widens races between a URL change and React rendering the new route. The traceability matrix (which test covers which requirement) is [`docs/qa/test-matrix.md`](docs/qa/test-matrix.md).
+
 ## Layout
 
 ```

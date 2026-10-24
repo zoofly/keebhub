@@ -1,9 +1,11 @@
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import {
   expectNoHorizontalScroll,
+  logOutInUi,
   mainNav,
   openMenuIfNeeded,
   prepareContext,
+  throttleCpu,
   watchConsole,
 } from "./fixtures";
 
@@ -36,6 +38,7 @@ test.beforeAll(async ({ browser }, info) => {
   });
   await prepareContext(context);
   page = await context.newPage();
+  await throttleCpu(page);
   issues = watchConsole(page);
   page.on("dialog", (dialog) => {
     dialogs.push(dialog.message());
@@ -103,6 +106,7 @@ test("6. register: new account is signed in and lands on the market", async () =
   await form.getByLabel("Password").fill(password);
   await form.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/market$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Market" })).toBeVisible();
   await openMenuIfNeeded(page);
   await expect(mainNav(page).getByRole("button", { name: "Log out" })).toBeVisible();
 });
@@ -205,9 +209,8 @@ test("16. login then logout", async () => {
   await loginForm().getByLabel("Password").fill(password);
   await loginForm().getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/market$/);
-  await openMenuIfNeeded(page);
-  await mainNav(page).getByRole("button", { name: "Log out" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Market" })).toBeVisible();
+  await logOutInUi(page);
   await openMenuIfNeeded(page);
   await expect(mainNav(page).getByRole("link", { name: "Log in" })).toBeVisible();
   expect(await page.evaluate(() => fetch("/api/auth/me").then((r) => r.status))).toBe(401);

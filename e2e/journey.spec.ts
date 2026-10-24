@@ -1,8 +1,7 @@
 import type { Browser, Page } from "@playwright/test";
 import {
   expect,
-  mainNav,
-  openMenuIfNeeded,
+  logOutInUi,
   prepareContext,
   SEED_PASSPHRASE,
   test,
@@ -37,12 +36,7 @@ async function registerInUi(page: Page, username: string) {
   await form.getByLabel("Password").fill(PASSWORD);
   await form.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/market$/);
-}
-
-async function logOutInUi(page: Page) {
-  await openMenuIfNeeded(page);
-  await mainNav(page).getByRole("button", { name: "Log out" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Market" })).toBeVisible();
 }
 
 async function logInInUi(page: Page, username: string) {
@@ -52,6 +46,7 @@ async function logInInUi(page: Page, username: string) {
   await form.getByLabel("Password").fill(PASSWORD);
   await form.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/market$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Market" })).toBeVisible();
 }
 
 test("register, log out, log in; list, edit, save; another user can't touch it; delete; log out", async ({

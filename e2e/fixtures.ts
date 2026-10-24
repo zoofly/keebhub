@@ -75,6 +75,19 @@ export async function prepareContext(context: BrowserContext) {
   );
 }
 
+/**
+ * Flake hunting: E2E_CPU_THROTTLE=<rate> slows every page's CPU by that
+ * factor (Chrome DevTools CPU throttling), which widens race windows between
+ * a URL change and React committing the new route. Off by default.
+ */
+export async function throttleCpu(page: Page) {
+  const rate = Number(process.env.E2E_CPU_THROTTLE ?? "0");
+  if (rate > 1) {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+  }
+}
+
 type Issue = { kind: "csp" | "pageerror" | "console"; text: string };
 
 /** Watches the console: any CSP report, uncaught error or unexpected console.error fails the test. */
@@ -103,6 +116,10 @@ export const test = base.extend<Fixtures>({
   context: async ({ context }, use) => {
     await prepareContext(context);
     await use(context);
+  },
+  page: async ({ page }, use) => {
+    await throttleCpu(page);
+    await use(page);
   },
   consoleIssues: [
     async ({ page }, use) => {
@@ -201,11 +218,46 @@ export async function failNext(page: Page, method: string, path: string, times =
   );
 }
 
-/** The phone layout hides the nav behind a Menu button. */
+/**
+ * The phone layout hides the nav behind a Menu button. Opens it and waits
+ * for it to be open, not just for the click.
+ *
+ * Call it only once the page you navigated to has rendered (wait for its
+ * heading first): the nav closes the menu in an effect after each route
+ * change, and that effect runs after React commits the new route, which can
+ * be well after the URL has changed. Opening the menu in that gap lets the
+ * late effect close it again (the "Log in link not visible" flake).
+ */
 export async function openMenuIfNeeded(page: Page) {
   const toggle = page.getByRole("button", { name: "Menu" });
-  if ((await toggle.isVisible()) && (await toggle.getAttribute("aria-expanded")) !== "true") {
+  if (!(await toggle.isVisible())) {
+    return; // desktop: the nav is always shown
+  }
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
     await toggle.click();
+  }
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
+}
+
+/**
+ * Logs out with the nav's button and waits until the home page has rendered
+ * and, on phones, the menu has closed itself after that route change, so the
+ * next openMenuIfNeeded can't race it.
+ */
+export async function logOutInUi(page: Page) {
+  const from = new URL(page.url()).pathname;
+  await openMenuIfNeeded(page);
+  await page
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("button", { name: "Log out" })
+    .click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Welcome to Keebhub" })).toBeVisible();
+  // The menu only closes itself when the path changes (not when logging out from "/").
+  const toggle = page.getByRole("button", { name: "Menu" });
+  if (from !== "/" && (await toggle.isVisible())) {
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
   }
 }
 
