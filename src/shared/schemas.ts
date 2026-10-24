@@ -94,7 +94,12 @@ export type User = z.infer<typeof User>;
 // Postings
 // ---------------------------------------------------------------------------
 
-/** https only, at most 2048 characters, no credentials in the URL. */
+/**
+ * https only, at most 2048 characters, no credentials in the URL. It must be
+ * written "https://..." (any case), like the D1 CHECK (image_url LIKE
+ * 'https://%') requires: new URL() also reads "https:host" and "https:\host"
+ * as https, which the database would refuse.
+ */
 export const ImageUrl = z
   .string()
   .trim()
@@ -102,7 +107,7 @@ export const ImageUrl = z
   .max(IMAGE_URL_MAX, `Image URL must be at most ${IMAGE_URL_MAX} characters`)
   .refine(
     (value) => {
-      if (!URL.canParse(value)) {
+      if (!/^https:\/\//i.test(value) || !URL.canParse(value)) {
         return false;
       }
       const url = new URL(value);

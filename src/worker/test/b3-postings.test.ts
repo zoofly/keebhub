@@ -92,6 +92,9 @@ describe("POST /api/postings", () => {
       { title: "   " },
       { imageUrl: "javascript:alert(1)" },
       { imageUrl: "http://example.com/a.jpg" },
+      // Parsed as https by new URL() but refused by the D1 CHECK: was a 500.
+      { imageUrl: "https:example.com/a.jpg" },
+      { imageUrl: "https:/example.com/a.jpg" },
       { priceCents: -1 },
       { priceCents: 1e20 },
       { priceCents: 1.5 },

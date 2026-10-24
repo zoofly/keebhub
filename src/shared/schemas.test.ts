@@ -160,6 +160,11 @@ describe("ImageUrl", () => {
     "not a url",
     urlWithCredentials,
     `https://example.com/${"a".repeat(2048)}`,
+    // new URL() reads these as https, but D1's CHECK (LIKE 'https://%')
+    // refused them, so the API answered 500 instead of 400.
+    "https:example.com/kb.jpg",
+    "https:/example.com/kb.jpg",
+    "https:\\\\example.com\\kb.jpg",
   ])("rejects %j", (url) => {
     expect(ImageUrl.safeParse(url).success).toBe(false);
   });
