@@ -72,8 +72,7 @@ jobs:
     # Inert until Kash sets it up. Runs only for pushes to main, waits for
     # approval in the `production` environment, skips itself while the
     # Cloudflare secrets are missing, and fails while wrangler.jsonc still has
-    # the placeholder D1 id. The repository's default branch is still master:
-    # rename it to main, or change the branch in the `if` below.
+    # the placeholder D1 id. main is the repository's default branch.
     name: Deploy to Cloudflare
     needs: [check]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
