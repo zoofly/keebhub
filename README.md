@@ -1,76 +1,145 @@
 # keebhub
 
-A marketplace for mechanical keyboards, being rebuilt to run entirely on Cloudflare's free tier: one Worker serves the React app as static assets and a Hono API under `/api/*`, with D1 (SQLite) for data. The plan, decisions and phases are in [`docs/modernization-plan.md`](docs/modernization-plan.md).
+A marketplace for mechanical keyboard parts that runs entirely on Cloudflare's free tier. One Worker serves the React app as static assets and a Hono API under `/api/*`. Data lives in D1 (SQLite). The design and its decisions are in [`docs/modernization-plan.md`](docs/modernization-plan.md); the API contract is [`docs/api.md`](docs/api.md).
 
-This is **Phase 0 (foundation)**: tooling, config, the database schema, shared validation, `/api/health`, and a placeholder page. The original CRA + Express + Postgres app still lives in [`legacy/`](legacy/README.md) until cutover.
+- **Frontend:** React 19, React Router 8, TanStack Query, Tailwind CSS 4, built by Vite 8 (`src/client`).
+- **API:** Hono on Workers with zod validation shared with the client (`src/worker`, `src/shared`).
+- **Auth:** server-side sessions in D1 behind a `__Host-` cookie; PBKDF2 + pepper password hashes; Turnstile on register and login; breached-password check (HIBP).
+- **Security headers:** an enforced Content-Security-Policy and the usual headers for the app (`public/_headers`), and a locked-down set for the API (Hono `secureHeaders`).
+
+Nothing has been deployed yet. See [First deploy](#first-deploy-kash) below.
 
 ## Requirements
 
-- Node 24 (see `.nvmrc`; `nvm use` picks it up). npm comes with it.
-- Nothing else: Wrangler, workerd and a local D1 are installed as dev dependencies. No Cloudflare account is needed for local work.
+- Node 24 (`.nvmrc`; `nvm use` picks it up) and the npm that comes with it.
+- Nothing else for local work: Wrangler, workerd and a local D1 are dev dependencies. No Cloudflare account is needed until you deploy.
+
+## Local setup
+
+```sh
+npm ci
+cp .dev.vars.example .dev.vars   # then fill it in (see the comments in the file)
+npm run dev                      # http://localhost:5173
+```
+
+`.dev.vars` is git-ignored and holds local secrets only: a pepper you generate with `openssl rand -base64 32`, and Cloudflare's documented Turnstile **test** keys, which always pass. Register, login, password change and account deletion need it; browsing doesn't.
+
+`npm run dev:mock` runs the UI against in-browser MSW mocks instead of the Worker (no `.dev.vars` needed), which is handy for pure UI work.
 
 ## Commands
 
-```sh
-npm ci                  # install exactly what the lockfile says (no flags needed)
+| Command | What it does |
+|---|---|
+| `npm run dev` | Applies migrations to the local D1, then runs the SPA and the Worker (workerd) on one port with hot reload |
+| `npm run dev:mock` | The SPA alone, with the API answered by MSW mocks (`src/client/mocks`) |
+| `npm run build` | Production build: `dist/client` (static assets) and `dist/keebhub` (the Worker and its config). No source maps, no mocks |
+| `npm run preview` | Build, migrate the local D1, and serve the build with `vite preview` (workerd), like production |
+| `npm test` | Vitest: the `worker` project runs API tests in workerd with a fresh migrated D1 per file; the `client` project runs component tests in jsdom against MSW |
+| `npm run e2e` | Playwright at 1280 px and 375 px against the production build and the real API (see below). First time: `npx playwright install chromium` |
+| `npm run typecheck` | `tsc -b` over the app, worker and tooling projects |
+| `npm run lint` / `npm run format` | Biome check / fix |
+| `npm run cf-typegen` | Regenerate `worker-configuration.d.ts` after changing `wrangler.jsonc` |
+| `npm run db:migrate:local` | Apply `migrations/` to the local D1 in `.wrangler/state` |
+| `npm run build && node src/worker/bench/login-cpu.mjs` | Local CPU benchmark of login and register in workerd |
 
-npm run dev             # apply D1 migrations locally, then start Vite: the SPA and the
-                        # Worker (in workerd, with local D1) on one port, http://localhost:5173
-npm run preview         # production build served by `vite preview` (workerd + local D1)
+### End-to-end tests
 
-npm test                # Vitest: "worker" project runs in workerd with a fresh migrated D1
-                        # per test file; "client" project runs React tests in jsdom
-npm run e2e             # Playwright smoke tests against build + `vite preview`
-                        # (first time: npx playwright install chromium)
-npm run typecheck       # tsc -b over the app, worker and tooling projects
-npm run lint            # Biome lint + format check (npm run format to fix)
-npm run cf-typegen      # regenerate worker-configuration.d.ts after editing wrangler.jsonc
-npm run db:migrate:local  # apply migrations/ to the local D1 in .wrangler/state
-```
+`npm run e2e` starts `e2e/server.ts`, which builds the app, gives this run its own empty D1 in `.wrangler/e2e`, writes `dist/keebhub/.dev.vars` with a random pepper and the Turnstile test keys, applies the migrations and starts `vite preview`. `e2e/global-setup.ts` then seeds accounts and listings through the API. Your own `.dev.vars` and `.wrangler/state` are not touched.
+
+Tests run one at a time against that shared database, and any CSP violation, uncaught error or unexpected console error fails the test. Register and login call Turnstile and the HIBP API from the Worker, so the suite needs network access (`SKIP_REAL_TURNSTILE=1` skips the one test that loads the real widget). `SHOTS_DIR=/tmp/shots npm run e2e -- screenshots` saves screenshots of every page.
 
 ## Layout
 
 ```
-wrangler.jsonc              Worker, static assets, D1, rate limiter, cron, observability
-vite.config.ts              React + @cloudflare/vite-plugin
+wrangler.jsonc              Worker, static assets, D1, rate limiter, cron, observability, secret names
+vite.config.ts              React, Tailwind, MSW (dev:mock only) and @cloudflare/vite-plugin
 vitest.config.ts            "worker" (workerd) and "client" (jsdom) test projects
-playwright.config.ts        e2e against vite preview
-worker-configuration.d.ts   generated by `npm run cf-typegen`; do not edit
-migrations/                 D1 schema (0001_init.sql) and seed data (0002_seed_switches.sql)
-public/                     static files; _headers sets security and cache headers
-index.html                  Vite entry
+playwright.config.ts        e2e against the production build and the real API
+worker-configuration.d.ts   generated by `npm run cf-typegen`; don't edit
+migrations/                 D1 schema and seed data, applied in order
+public/                     static files; _headers sets the CSP, security and cache headers
 src/shared/                 zod schemas, limits and money helpers used by both sides
-src/worker/                 Hono API (index.ts exports AppType for the typed client)
-src/client/                 React app (calls the API through hono/client)
-e2e/                        Playwright specs
-legacy/                     the old app, with its own package.json (removed at cutover)
+src/worker/                 Hono API: routes/, middleware/, auth/, db/ (typed SQL), test/
+src/client/                 React app: routes/, components/, lib/, mocks/ (MSW)
+e2e/                        Playwright specs, the e2e server and seed
+docs/                       plan, API contract, and the legacy app's acceptance flows (history)
 ```
 
-## Database
+## Database and migrations
 
-Migrations in `migrations/` are plain SQL, applied in order by Wrangler and tracked in a `d1_migrations` table. To change the schema, add a new numbered file; never edit one that has been applied. Migrations run before each deploy, so they must work with the Worker version that is still running (add first, remove later).
+Migrations are plain SQL files in `migrations/`, applied in order and tracked in D1's `d1_migrations` table.
 
-Local data lives in `.wrangler/state` (git-ignored). Delete that folder to start from an empty database.
+- **To change the schema,** add the next numbered file (`0004_...sql`). Never edit a migration that has been applied anywhere.
+- **Keep migrations backward compatible.** The deploy job applies them *before* the new Worker goes live, so the old Worker must keep working against the new schema. Add first, start using it, remove later.
+- **Locally:** `npm run db:migrate:local`. Delete `.wrangler/state` to start over with an empty database.
+- **Remotely:** the deploy job runs `wrangler d1 migrations apply DB --remote`. To run it by hand: `npx wrangler d1 migrations apply DB --remote`.
 
-## Secrets
+### Restoring with Time Travel
 
-Secrets never go in `wrangler.jsonc`, the README or source. For local development copy `.dev.vars.example` to `.dev.vars` (git-ignored) and fill it in; for the deployed Worker use `npx wrangler secret put <NAME>`. Phase 0 needs none.
+D1 keeps point-in-time history automatically, at no cost: **7 days on the Free plan** (30 on Workers Paid). Notice problems quickly.
+
+```sh
+npx wrangler d1 time-travel info keebhub-db                                     # current bookmark
+npx wrangler d1 time-travel info keebhub-db --timestamp=2026-11-01T12:00:00Z      # bookmark at a time
+npx wrangler d1 time-travel restore keebhub-db --timestamp=2026-11-01T12:00:00Z   # restore to that time
+```
+
+A restore replaces the whole database, including sessions and anything written since. It prints the bookmark from before the restore, which you can restore to if you change your mind (`--bookmark=<that value>`). Run it from a terminal where you're logged in to the right account (`npx wrangler whoami`).
+
+## Secrets and keys
+
+Secrets never go in `wrangler.jsonc`, source or the README. Deployed values are set with `npx wrangler secret put <NAME>`, which deploys a new version immediately. Locally they live in `.dev.vars`.
+
+| Name | Kind | What it is |
+|---|---|---|
+| `PASSWORD_PEPPER_V1` | secret | 32 random bytes (`openssl rand -base64 32`) mixed into every password hash. **Keep an offline copy:** losing it locks every password out |
+| `TURNSTILE_SECRET_KEY` | secret | The Turnstile widget's secret key |
+| `TURNSTILE_SITE_KEY` | var (`wrangler.jsonc`) | The widget's public site key. The SPA reads it from `GET /api/config` |
+
+### Rotating the pepper
+
+Never replace `PASSWORD_PEPPER_V1` in place: every existing hash needs it. Each hash records which pepper version it used, so rotation is gradual:
+
+1. `openssl rand -base64 32`, then `npx wrangler secret put PASSWORD_PEPPER_V2`, and keep an offline copy.
+2. In `src/worker/auth/password.ts`, add `2: env.PASSWORD_PEPPER_V2` to `peppersFromEnv` and set `current: 2`. Add `PASSWORD_PEPPER_V2` to `secrets.required` in `wrangler.jsonc`, run `npm run cf-typegen`, and deploy.
+3. Each user's hash is re-made with V2 the next time they log in.
+4. Much later, when you're fine with anyone who hasn't logged in since having to make a new account (there's no email reset), remove V1 from the code and `npx wrangler secret delete PASSWORD_PEPPER_V1`.
+
+The PBKDF2 iteration count (`PBKDF2_ITERATIONS` in the same file) works the same way: change it and hashes are updated on the next login.
+
+### Rotating the Turnstile keys
+
+- **Secret key:** rotate it in the Cloudflare dashboard (Turnstile → the widget → Settings), then `npx wrangler secret put TURNSTILE_SECRET_KEY` with the new value. Logins and registrations fail between those two steps, so do them back to back.
+- **Site key** (a new widget): update `TURNSTILE_SITE_KEY` in `wrangler.jsonc`, put the new widget's secret with `wrangler secret put TURNSTILE_SECRET_KEY`, and deploy.
 
 ## CI
 
 `.github/workflows/ci.yml` runs on every push and pull request:
 
-- **check:** `npm ci`, `npm audit --omit=dev` (blocking), Biome, generated-types check, a no-SQL-interpolation check, typecheck, Vitest, and the Playwright smoke tests.
-- **legacy:** `npm ci` and `npm run test:server` in `legacy/`.
-- **deploy:** only for pushes to `main`, behind the `production` environment. It skips itself until the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets exist, and fails while `wrangler.jsonc` still has the placeholder D1 id.
+- **check:** `npm ci`, a blocking `npm audit --omit=dev`, Biome, a generated-types check, a no-SQL-interpolation check, typecheck, Vitest, and Playwright against the real API.
+- **deploy:** applies the D1 migrations and runs `wrangler deploy`. It runs only for pushes to `main`, waits for approval in the `production` environment, skips itself until the Cloudflare secrets exist, and fails while `wrangler.jsonc` still has the placeholder D1 id.
 
-Dependabot (`.github/dependabot.yml`) opens grouped weekly updates for npm and GitHub Actions.
+Dependabot opens grouped weekly updates for npm and GitHub Actions.
 
-## Before the first deploy (Kash)
+## First deploy (Kash)
 
-Nothing has been deployed and no Cloudflare resources exist yet. See §8 of the plan; in short:
+No Cloudflare resources exist yet. Use a Free account with **no payment method**, and don't start the R2 or Images Paid checkouts.
 
-1. `npx wrangler login`, then `npx wrangler d1 create keebhub-db` and paste the id into `wrangler.jsonc` (replacing the all-zero placeholder).
-2. Create the Turnstile widget and put its public site key in `vars`; set the secrets with `npx wrangler secret put` (Phase B2).
-3. Create a scoped API token (Workers Scripts: Edit, D1: Edit, this account only, with an expiry), add the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets, and add yourself as a required reviewer on the `production` environment.
-4. Deploy from `main`. Check that `https://keebhub.<account>.workers.dev/api/health` returns `{"status":"ok"}`, and that `wrangler d1 migrations apply DB --remote` accepted the `STRICT` tables.
+1. **Log in:** `npx wrangler login`, then `npx wrangler whoami` to check the account.
+2. **Database:** `npx wrangler d1 create keebhub-db`. Paste the printed `database_id` into `wrangler.jsonc`, replacing the all-zero placeholder, and commit it (the id is not a secret).
+3. **Turnstile widget:** in the dashboard, create a widget (Managed) for `keebhub.<your-subdomain>.workers.dev`, plus `localhost` if you want the real widget locally. Put its **site key** in `vars.TURNSTILE_SITE_KEY` in `wrangler.jsonc`.
+4. **Secrets** (each prompts for the value; nothing goes in the shell history):
+   - `npx wrangler secret put PASSWORD_PEPPER_V1` with the output of `openssl rand -base64 32`. Store an offline copy.
+   - `npx wrangler secret put TURNSTILE_SECRET_KEY` with the widget's secret key.
+
+   The Worker has to exist before secrets can be added, so if `secret put` says it doesn't, do step 6 by hand first (`npm run build && npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`), then add the secrets.
+5. **CI deploys:** create an account API token (My Profile → API Tokens → Create Custom Token) with **Account → Workers Scripts: Edit** and **Account → D1: Edit**, limited to this account, with an expiry date (rotate it yearly). In GitHub, add the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and create the `production` environment with yourself as a required reviewer.
+6. **Deploy:** push to `main` and approve the `production` job (or deploy by hand as in step 4).
+7. **Check:**
+   - `https://keebhub.<your-subdomain>.workers.dev/api/health` returns `{"status":"ok"}`.
+   - Register, log in, list something.
+   - Workers Observability: login `cpuTime` is comfortably under 10 ms (if not, lower `PBKDF2_ITERATIONS`), and there are no CSP or 5xx errors.
+   - Billing still shows the Free plan and no payment method.
+   - The migration step succeeded (that's where D1 would reject the `STRICT` tables; `npx wrangler d1 migrations list DB --remote` should list nothing unapplied), and the `AUTH_LIMITER` rate-limit binding deployed. If Free doesn't allow it, remove it from `wrangler.jsonc`; the code works without it.
+
+The deploy job only runs for `main`. This repository's default branch is still `master`, so either rename it to `main` (GitHub → Settings → Branches) or change the job's branch.
