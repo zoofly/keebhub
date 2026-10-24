@@ -1,6 +1,6 @@
 // Shared helpers for Worker integration tests (run in workerd via SELF).
 import { SELF } from "cloudflare:test";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
 import { SITEVERIFY_URL } from "../auth/turnstile";
 
 export const ORIGIN = "https://keebhub.test";
@@ -163,3 +163,42 @@ export const validPosting = {
   imageUrl: "https://example.com/gmmk.jpg",
   priceCents: 19999,
 };
+
+/** The session id (public half of the token) from a "name=<id>.<secret>" cookie pair. */
+export const sessionIdFrom = (cookie: string): string => cookie.split("=")[1]?.split(".")[0] ?? "";
+
+const TABLES = ["users", "sessions", "postings", "saved_listings", "auth_throttle"] as const;
+export type Table = (typeof TABLES)[number];
+
+/**
+ * Every row of every app table, as JSON, so a test can assert that a refused
+ * request wrote nothing at all (not just that a count stayed the same).
+ */
+export async function dbSnapshot(
+  db: D1Database,
+  tables: readonly Table[] = TABLES,
+): Promise<Record<string, unknown[]>> {
+  const statements = {
+    users: "SELECT id, username, password_hash, created_at FROM users ORDER BY id",
+    sessions:
+      "SELECT id, hex(secret_hash) AS h, user_id, created_at, expires_at FROM sessions ORDER BY id",
+    postings: "SELECT * FROM postings ORDER BY id",
+    saved_listings: "SELECT * FROM saved_listings ORDER BY user_id, posting_id",
+    auth_throttle: "SELECT * FROM auth_throttle ORDER BY key",
+  } satisfies Record<Table, string>;
+  const results = await db.batch(tables.map((table) => db.prepare(statements[table])));
+  return Object.fromEntries(tables.map((table, i) => [table, results[i]?.results ?? []]));
+}
+
+/** Asserts the shared JSON error shape and returns the parsed body. */
+export async function expectApiError(res: Response, status: number, code: string) {
+  expect(res.status, `${res.url} -> ${status}`).toBe(status);
+  expect(res.headers.get("content-type")).toMatch(/^application\/json/);
+  const body = (await res.json()) as {
+    error: { code: string; message: string; fields?: Record<string, string[]> };
+  };
+  expect(Object.keys(body)).toEqual(["error"]);
+  expect(body.error.code).toBe(code);
+  expect(typeof body.error.message).toBe("string");
+  return body;
+}
