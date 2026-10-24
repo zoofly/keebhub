@@ -142,4 +142,4 @@ No Cloudflare resources exist yet. Use a Free account with **no payment method**
    - Billing still shows the Free plan and no payment method.
    - The migration step succeeded (that's where D1 would reject the `STRICT` tables; `npx wrangler d1 migrations list DB --remote` should list nothing unapplied), and the `AUTH_LIMITER` rate-limit binding deployed. If Free doesn't allow it, remove it from `wrangler.jsonc`; the code works without it.
 
-The deploy job only runs for `main`. This repository's default branch is still `master`, so either rename it to `main` (GitHub → Settings → Branches) or change the job's branch.
+The deploy job only runs for pushes to `main`, the repository's default branch.
