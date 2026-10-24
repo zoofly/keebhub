@@ -43,12 +43,25 @@ describe("login lockout (per username)", () => {
     await registerUser("locked-out");
     await failLogins("locked-out");
     const before = await dbSnapshot(db);
-    const res = await loginUser("locked-out", GOOD_PASSWORD);
+    const warnings: string[] = [];
+    vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
+      warnings.push(args.map(String).join(" "));
+    });
+    const res = await loginUser("locked-out", GOOD_PASSWORD, "192.0.2.201");
     await expectApiError(res, 429, "rate_limited");
     expect(retryAfter(res)).toBeGreaterThan(LOGIN_USER_RULE.lockSeconds - 10);
     expect(retryAfter(res)).toBeLessThanOrEqual(LOGIN_USER_RULE.lockSeconds);
     expect(sessionCookie(res)).toBeNull();
     expect(await dbSnapshot(db)).toEqual(before);
+    // The lockout is logged (A09) with a username hash and the IP, never the name or password.
+    const locked = warnings
+      .map((line) => JSON.parse(line) as Record<string, unknown>)
+      .find((e) => e.event === "auth.locked");
+    expect(locked).toMatchObject({
+      usernameHash: expect.stringMatching(/^[0-9a-f]{16}$/),
+      ip: "192.0.2.201",
+    });
+    expect(warnings.join("\n")).not.toMatch(/locked-out|fake test words/);
   });
 
   it("counts every spelling of the name against one key", async () => {
