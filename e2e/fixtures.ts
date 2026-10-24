@@ -1,13 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { type BrowserContext, test as base, expect, type Page } from "@playwright/test";
+import { randomIp, SEED_PASSPHRASE, TURNSTILE_DUMMY_TOKEN, uniqueName } from "./support";
 
-// Shared Playwright fixtures. The app is a `vite build --mode e2e` build: the
-// SPA's /api/* calls are answered by the MSW mocks in src/client/mocks, which
-// keep their data in sessionStorage, so every test (new context) starts from
-// the same seed.
+// Shared Playwright fixtures. The app is the production build served by
+// `vite preview` (e2e/server.ts): the real Worker in workerd with a fresh
+// local D1, seeded by global-setup.ts. Tests run one at a time against that
+// shared database, so a test that changes seeded data puts it back, and
+// anything else uses its own account (newUser) or its own listings.
 
-/** Seeded mock accounts (see src/client/mocks/fixtures.ts). Not real credentials. */
-export const MOCK_PASSPHRASE = "mock-only-passphrase";
+export { SEED_PASSPHRASE } from "./support";
 export const KASH = { id: 1, username: "kash" };
 
 /**
@@ -22,7 +23,7 @@ const TURNSTILE_STUB = `
   let n = 0;
   const issue = (id) => {
     const w = widgets.get(id);
-    if (w) setTimeout(() => w.callback(window.__e2eTurnstileToken || "e2e-turnstile-token"), 0);
+    if (w) setTimeout(() => w.callback(window.__e2eTurnstileToken || "${TURNSTILE_DUMMY_TOKEN}"), 0);
   };
   window.turnstile = {
     render(el, options) {
@@ -48,8 +49,20 @@ const svgFor = (label: string) =>
   <text x="200" y="160" font-family="sans-serif" font-size="22" text-anchor="middle" fill="#432c6b">${label}</text>
 </svg>`;
 
-/** Routes for a test context: Turnstile stub and the mock image hosts. */
+/**
+ * Sets up a test context: its own client IP (so per-IP auth limits stay per
+ * test), the Turnstile stub, the test image hosts, and a listener that turns
+ * any CSP violation into a console error (which fails the test).
+ */
 export async function prepareContext(context: BrowserContext) {
+  await context.setExtraHTTPHeaders({ "cf-connecting-ip": randomIp() });
+  await context.addInitScript(() => {
+    document.addEventListener("securitypolicyviolation", (event) => {
+      console.error(
+        `CSP violation: ${event.violatedDirective} blocked ${event.blockedURI || "inline"}`,
+      );
+    });
+  });
   await context.route("https://challenges.cloudflare.com/turnstile/**", (route) =>
     route.fulfill({ contentType: "text/javascript", body: TURNSTILE_STUB }),
   );
@@ -103,30 +116,89 @@ export const test = base.extend<Fixtures>({
 
 export { expect };
 
-/** Loads the app and waits until the mocks and the first render are ready. */
+/** Loads the app and waits for the first render. */
 export async function open(page: Page, path: string) {
   await page.goto(path);
   await expect(page.getByRole("main")).toBeVisible();
-  await page.waitForFunction(() => Boolean(window.__keebhubMocks));
 }
 
-/** Signs in through the (mocked) API and reloads, like an existing session. */
-export async function signIn(page: Page, username = KASH.username, path = "/") {
+const apiHeaders = (page: Page) => ({ origin: new URL(page.url()).origin });
+
+/** Signs in through the API (the context keeps the cookie), then opens `path`. */
+export async function signIn(
+  page: Page,
+  username: string = KASH.username,
+  path = "/",
+  password = SEED_PASSPHRASE,
+) {
   await open(page, path);
-  const status = await page.evaluate(
-    async ([name, password]) => {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ username: name, password, turnstileToken: "e2e" }),
-      });
-      return res.status;
-    },
-    [username, MOCK_PASSPHRASE] as const,
-  );
-  expect(status).toBe(200);
+  const res = await page.request.post("/api/auth/login", {
+    headers: apiHeaders(page),
+    data: { username, password, turnstileToken: TURNSTILE_DUMMY_TOKEN },
+  });
+  expect(res.status(), await res.text()).toBe(200);
   await page.reload();
-  await page.waitForFunction(() => Boolean(window.__keebhubMocks));
+  await expect(page.getByRole("main")).toBeVisible();
+}
+
+/** Registers a fresh account (signed in in this context) and opens `path`. */
+export async function newUser(page: Page, prefix = "e2e", path = "/") {
+  await open(page, path);
+  const username = uniqueName(prefix);
+  const res = await page.request.post("/api/auth/register", {
+    headers: apiHeaders(page),
+    data: { username, password: SEED_PASSPHRASE, turnstileToken: TURNSTILE_DUMMY_TOKEN },
+  });
+  expect(res.status(), await res.text()).toBe(201);
+  const { user } = (await res.json()) as { user: { id: number; username: string } };
+  await page.reload();
+  await expect(page.getByRole("main")).toBeVisible();
+  return user;
+}
+
+/** Creates a listing as the signed-in user through the API. */
+export async function createListing(
+  page: Page,
+  posting: { title: string; priceCents?: number; description?: string; imageUrl?: string },
+) {
+  const res = await page.request.post("/api/postings", {
+    headers: apiHeaders(page),
+    data: {
+      description: "",
+      priceCents: 1000,
+      imageUrl: "https://img.keebhub.test/e2e.svg",
+      ...posting,
+    },
+  });
+  expect(res.status(), await res.text()).toBe(201);
+  return (await res.json()) as { id: number; title: string };
+}
+
+/** Ends the session as if it expired: the browser loses its cookie. */
+export async function expireSession(page: Page) {
+  await page.context().clearCookies();
+}
+
+/**
+ * Makes the next `times` requests to `method path` fail with a 500, to
+ * exercise error states (the real API has no switch for that).
+ */
+export async function failNext(page: Page, method: string, path: string, times = 1) {
+  let remaining = times;
+  await page.route(
+    (url) => url.pathname === path,
+    (route) => {
+      if (route.request().method() === method.toUpperCase() && remaining > 0) {
+        remaining -= 1;
+        return route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ error: { code: "internal", message: "Internal server error" } }),
+        });
+      }
+      return route.fallback();
+    },
+  );
 }
 
 /** The phone layout hides the nav behind a Menu button. */
@@ -176,11 +248,6 @@ export async function expectAccessible(page: Page): Promise<AxeSummary> {
 
 declare global {
   interface Window {
-    __keebhubMocks?: {
-      reset: () => void;
-      expireSession: () => void;
-      failNext: (method: string, path: string, times?: number) => void;
-    };
     __e2eTurnstileToken?: string;
     turnstile?: unknown;
   }

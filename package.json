@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "npm run db:migrate:local && vite",
+    "dev:mock": "vite --mode mock",
     "build": "vite build",
     "preview": "npm run build && npm run db:migrate:local && vite preview",
     "typecheck": "tsc -b",

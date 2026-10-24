@@ -8,8 +8,8 @@ import {
 } from "./fixtures";
 
 // The 18 legacy acceptance flows (docs/legacy-acceptance/e2e-legacy.js),
-// ported to the new app and run in order on one page, at both widths (the
-// desktop and mobile projects). Differences from the legacy behaviour are
+// ported to the new app and run in order on one page against the real API,
+// at both widths (the desktop and mobile projects). Differences from the legacy behaviour are
 // noted where they are deliberate (plan decisions):
 // - URLs are real paths, not /#/...; the market is public (browse logged out).
 // - sweetalert modals became toasts and a native <dialog> confirm.
@@ -182,7 +182,8 @@ test("13. delete: own listing deleted", async () => {
 test("14. expired session drops to login without a request loop", async () => {
   await page.goto("/profile");
   await expect(page.getByRole("heading", { level: 1, name: /^Hi/ })).toBeVisible();
-  await page.evaluate(() => window.__keebhubMocks?.expireSession());
+  // The session ends (as if it expired): the browser loses its cookie.
+  await context.clearCookies();
   const before = apiLog.length;
   await openMenuIfNeeded(page);
   await mainNav(page).getByRole("link", { name: "My listings" }).click();

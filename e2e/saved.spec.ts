@@ -1,4 +1,4 @@
-import { expect, KASH, open, signIn, test } from "./fixtures";
+import { expect, failNext, KASH, open, signIn, test } from "./fixtures";
 
 // Q-F4: saved listings, switch guide states.
 
@@ -49,7 +49,7 @@ test("switch guide: filter by type, error and retry", async ({ page }) => {
   );
   await expect(guide.getByRole("article")).toHaveCount(7);
 
-  await page.evaluate(() => window.__keebhubMocks?.failNext("GET", "/api/switches", 2));
+  await failNext(page, "GET", "/api/switches", 2);
   await page.reload();
   const alert = guide.getByRole("alert");
   await expect(alert).toContainText("Switches didn't load");

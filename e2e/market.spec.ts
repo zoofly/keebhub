@@ -1,4 +1,4 @@
-import { expect, expectNoHorizontalScroll, KASH, open, signIn, test } from "./fixtures";
+import { expect, expectNoHorizontalScroll, failNext, KASH, open, signIn, test } from "./fixtures";
 
 // Q-F3: postings list, cards, create/edit/delete, owner-only controls.
 
@@ -150,9 +150,8 @@ test("someone else's listing has no owner controls and can't be edited by URL", 
 });
 
 test("a market load failure shows an error with a working retry", async ({ page }) => {
-  await open(page, "/about");
-  await page.evaluate(() => window.__keebhubMocks?.failNext("GET", "/api/postings", 2));
-  await page.goto("/market");
+  await failNext(page, "GET", "/api/postings", 2);
+  await open(page, "/market");
   const alert = page.getByRole("alert").filter({ hasText: "The listings didn't load" });
   await expect(alert).toBeVisible();
   await alert.getByRole("button", { name: "Try again" }).click();

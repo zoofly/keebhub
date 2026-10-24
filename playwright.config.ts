@@ -2,19 +2,21 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4173;
 
-// Runs against a build served by `vite preview`, i.e. the real Worker in
-// workerd with a local D1 (migrations applied first).
+// Runs against the production build served by `vite preview`: the real
+// Worker in workerd with a fresh local D1 for each run (e2e/server.ts),
+// seeded through the API by e2e/global-setup.ts. No MSW.
 //
-// Until the backend track (B1-B4) is merged, the build uses `--mode e2e`:
-// the SPA answers /api/* (except /api/health) from the MSW mocks in
-// src/client/mocks, and Turnstile uses Cloudflare's always-pass test site key.
-// At cutover, drop `--mode e2e` so the suite runs against the real API.
+// Tests share that database, so they run one at a time (workers: 1).
+// Register and login reach Turnstile siteverify (with Cloudflare's test keys)
+// and the HIBP API from the Worker, so the suite needs network access.
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+  globalSetup: "./e2e/global-setup.ts",
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
@@ -25,16 +27,18 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 900 } },
     },
     {
-      // Phone width. API-only specs don't depend on the viewport, so they run once.
+      // Phone width. API-only and build checks don't depend on the viewport, so they run once.
       name: "mobile",
       use: { ...devices["Desktop Chrome"], viewport: { width: 375, height: 812 }, hasTouch: true },
-      testIgnore: ["**/smoke.spec.ts"],
+      testIgnore: ["**/smoke.spec.ts", "**/build-hygiene.spec.ts", "**/security-headers.spec.ts"],
     },
   ],
   webServer: {
-    command: `npx vite build --mode e2e && npm run db:migrate:local && npx vite preview --port ${PORT} --strictPort`,
+    command: "node e2e/server.ts",
+    env: { E2E_PORT: String(PORT) },
     url: `http://localhost:${PORT}/api/health`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    // Always a fresh server: each run gets its own empty database.
+    reuseExistingServer: false,
+    timeout: 240_000,
   },
 });

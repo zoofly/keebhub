@@ -1,13 +1,16 @@
 import {
   expect,
+  expireSession,
   KASH,
-  MOCK_PASSPHRASE,
   mainNav,
+  newUser,
   open,
   openMenuIfNeeded,
+  SEED_PASSPHRASE,
   signIn,
   test,
 } from "./fixtures";
+import { uniqueName } from "./support";
 
 // Q-F2: login/register UI, server messages, ?next= handling, logout.
 
@@ -47,11 +50,12 @@ test("register: a taken username (any case) shows the 409 message", async ({ pag
 test("register: a new account is signed in and lands on the market", async ({ page }) => {
   await open(page, "/register");
   const form = page.getByRole("form", { name: "Create an account" });
-  await form.getByLabel("Username").fill("fresh-e2e");
+  const username = uniqueName("fresh");
+  await form.getByLabel("Username").fill(username);
   await form.getByLabel("Password").fill(NEW_PASSWORD);
   await form.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/market$/);
-  await expect(page.getByText("Welcome to Keebhub, fresh-e2e!")).toBeVisible();
+  await expect(page.getByText(`Welcome to Keebhub, ${username}!`)).toBeVisible();
   await openMenuIfNeeded(page);
   await expect(mainNav(page).getByRole("button", { name: "Log out" })).toBeVisible();
   // The password isn't left anywhere in the DOM.
@@ -63,7 +67,9 @@ test("login: wrong password message, then the rate-limit message with the wait",
 }) => {
   await open(page, "/login");
   const form = page.getByRole("form", { name: "Log in" });
-  await form.getByLabel("Username").fill(KASH.username);
+  // An account of its own, so the lockout doesn't affect other tests.
+  const username = uniqueName("lockme");
+  await form.getByLabel("Username").fill(username);
   await form.getByLabel("Password").fill("wrong password");
   await form.getByRole("button", { name: "Log in" }).click();
   await expect(form.getByRole("alert")).toHaveText(
@@ -77,8 +83,10 @@ test("login: wrong password message, then the rate-limit message with the wait",
     await form.getByRole("button", { name: "Log in" }).click();
     await response;
   }
+  // The 11th attempt meets either the per-IP request limit (about a minute)
+  // or the username lockout (about 15 minutes), whichever trips first.
   await expect(form.getByRole("alert")).toHaveText(
-    "Too many attempts in a short time. Please wait about 15 minutes and try again.",
+    /^Too many attempts in a short time\. Please wait about (a minute|1[45] minutes) and try again\.$/,
   );
 });
 
@@ -87,11 +95,11 @@ test("login: a guest deep link to a protected page comes back after login", asyn
   await expect(page).toHaveURL(/\/login\?next=%2Fmylistings$/);
   const form = page.getByRole("form", { name: "Log in" });
   await form.getByLabel("Username").fill(KASH.username);
-  await form.getByLabel("Password").fill(MOCK_PASSPHRASE);
+  await form.getByLabel("Password").fill(SEED_PASSPHRASE);
   await form.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(/\/mylistings$/);
   await expect(page.getByRole("heading", { level: 1, name: "My listings" })).toBeVisible();
-  expect(await page.content()).not.toContain(MOCK_PASSPHRASE);
+  expect(await page.content()).not.toContain(SEED_PASSPHRASE);
 });
 
 for (const next of ["//evil.com", "https://evil.com", "/\\evil.com"]) {
@@ -99,7 +107,7 @@ for (const next of ["//evil.com", "https://evil.com", "/\\evil.com"]) {
     await open(page, `/login?next=${encodeURIComponent(next)}`);
     const form = page.getByRole("form", { name: "Log in" });
     await form.getByLabel("Username").fill(KASH.username);
-    await form.getByLabel("Password").fill(MOCK_PASSPHRASE);
+    await form.getByLabel("Password").fill(SEED_PASSPHRASE);
     await form.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/^http:\/\/localhost:\d+\/market$/);
   });
@@ -123,7 +131,7 @@ test("logout clears the session; protected pages then redirect to login", async 
 test("an expired session drops to login without a request loop", async ({ page }) => {
   await signIn(page, KASH.username, "/profile");
   await expect(page.getByRole("heading", { level: 1, name: "Hi, kash!" })).toBeVisible();
-  await page.evaluate(() => window.__keebhubMocks?.expireSession());
+  await expireSession(page);
   const requests: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("/api/")) requests.push(request.url());
@@ -137,7 +145,8 @@ test("an expired session drops to login without a request loop", async ({ page }
 });
 
 test("profile: change password, wrong current password is a field error", async ({ page }) => {
-  await signIn(page, KASH.username, "/profile");
+  // Its own account: the seeded ones keep their password for other tests.
+  await newUser(page, "pwchange", "/profile");
   const section = page.getByRole("region", { name: "Change password" });
   await section.getByLabel("Current password").fill("not my password");
   await section.getByLabel(/^New password/).fill(NEW_PASSWORD);
@@ -146,7 +155,7 @@ test("profile: change password, wrong current password is a field error", async 
   await expect(section.getByText("That isn't your current password")).toBeVisible();
   await expect(page).toHaveURL(/\/profile$/);
 
-  await section.getByLabel("Current password").fill(MOCK_PASSPHRASE);
+  await section.getByLabel("Current password").fill(SEED_PASSPHRASE);
   await section.getByRole("button", { name: "Change password" }).click();
   await expect(page.getByText("Password changed")).toBeVisible();
 });
