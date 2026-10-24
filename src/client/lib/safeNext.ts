@@ -24,7 +24,14 @@ export function safeNextPath(raw: string | null | undefined): string | null {
   } catch {
     return null;
   }
-  if (url.origin !== PLACEHOLDER_ORIGIN || AUTH_PAGES.has(url.pathname)) {
+  // Dot segments can normalize into a protocol-relative path:
+  // "/.//evil.com" and "/a/..//evil.com" both become "//evil.com", which
+  // navigate() and redirect() would send to another site.
+  if (
+    url.origin !== PLACEHOLDER_ORIGIN ||
+    url.pathname.startsWith("//") ||
+    AUTH_PAGES.has(url.pathname)
+  ) {
     return null;
   }
   return `${url.pathname}${url.search}${url.hash}`;
