@@ -1,5 +1,5 @@
 // Q-B1: API plumbing (headers, content types, origin check, errors, switches).
-import { SELF } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BODY_LIMIT_BYTES } from "../../shared/limits";
 import { ApiError, SwitchList } from "../../shared/schemas";
@@ -186,6 +186,33 @@ describe("GET /api/config", () => {
     const res = await api("/api/config");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ turnstileSiteKey: expect.any(String) });
+  });
+});
+
+describe("cookies and caching", () => {
+  it("a response that sets the session cookie is never publicly cacheable", async () => {
+    const { cookie } = await registerUser("cachecookie");
+    const id = cookie.split("=")[1]?.split(".")[0] ?? "";
+    // Past the half-life, so the next request refreshes the cookie.
+    await env.DB.prepare("UPDATE sessions SET expires_at = ? WHERE id = ?")
+      .bind(Math.floor(Date.now() / 1000) + 3600, id)
+      .run();
+    const refreshed = await api("/api/switches", { cookie });
+    expect(refreshed.status).toBe(200);
+    expect(refreshed.headers.getSetCookie().join()).toMatch(/^__Host-keebhub_session=[a-z2-7]/);
+    expect(refreshed.headers.get("cache-control")).toBe("no-store");
+    // Once refreshed, the same cookie gets the normal public response.
+    const again = await api("/api/switches", { cookie });
+    expect(again.headers.getSetCookie()).toEqual([]);
+    expect(again.headers.get("cache-control")).toBe("public, max-age=300");
+    // A dead cookie is cleared (Set-Cookie with Max-Age=0): not cacheable either.
+    const dead = await api("/api/config", {
+      cookie: `__Host-keebhub_session=${"a".repeat(24)}.${"a".repeat(24)}`,
+    });
+    expect(dead.headers.getSetCookie().join()).toMatch(/Max-Age=0/);
+    expect(dead.headers.get("cache-control")).toBe("no-store");
+    // Without a cookie the public cache header stays.
+    expect((await api("/api/config")).headers.get("cache-control")).toBe("public, max-age=300");
   });
 });
 

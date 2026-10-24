@@ -47,10 +47,15 @@ export const originCheck: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
 };
 
-/** Responses that didn't choose a cache policy are never cached. */
+/**
+ * Responses that didn't choose a cache policy are never cached. Neither is
+ * any response that sets a cookie (a session refresh or clear), even on a
+ * public, cacheable route: a shared cache must never store or replay a
+ * Set-Cookie with someone's session token.
+ */
 export const noStoreByDefault: MiddlewareHandler<AppEnv> = async (c, next) => {
   await next();
-  if (!c.res.headers.has("Cache-Control")) {
+  if (!c.res.headers.has("Cache-Control") || c.res.headers.has("Set-Cookie")) {
     c.res.headers.set("Cache-Control", "no-store");
   }
 };
