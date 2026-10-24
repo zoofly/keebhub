@@ -5,7 +5,15 @@ import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BODY_LIMIT_BYTES } from "../../shared/limits";
 import { SwitchList } from "../../shared/schemas";
-import { api, expectApiError, freshIp, mockOutbound, registerUser, validPosting } from "./helpers";
+import {
+  api,
+  expectApiError,
+  freshIp,
+  GOOD_PASSWORD,
+  mockOutbound,
+  registerUser,
+  validPosting,
+} from "./helpers";
 
 beforeEach(() => {
   mockOutbound();
@@ -38,7 +46,7 @@ describe("every error is JSON {error: {code, message}}", () => {
         {
           body: {
             username: "Errors-User",
-            password: "fake test words",
+            password: GOOD_PASSWORD,
             turnstileToken: "turnstile-pass",
           },
           ip: freshIp(),
@@ -80,7 +88,7 @@ describe("every error is JSON {error: {code, message}}", () => {
     const res = await api("/api/auth/register", {
       body: {
         username: "throttled",
-        password: "fake test words",
+        password: GOOD_PASSWORD,
         turnstileToken: "turnstile-pass",
       },
       ip,

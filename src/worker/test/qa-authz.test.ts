@@ -22,6 +22,7 @@ import {
 
 const db = env.DB;
 const NEW_PASSWORD = "different fake words";
+const ALICE_PASSWORD = "alice fake words";
 
 beforeEach(() => {
   mockOutbound();
@@ -264,23 +265,23 @@ describe("another user's data (IDOR)", () => {
   });
 
   it("can't be reached with someone else's password", async () => {
-    const alice = await registerUser("pw-alice", "alice fake words");
+    const alice = await registerUser("pw-alice", ALICE_PASSWORD);
     const { cookie: bob } = await registerUser("pw-bob");
     // Bob confirming with Alice's password is just a wrong password for Bob.
     const del = await api("/api/me", {
       method: "DELETE",
-      body: { password: "alice fake words" },
+      body: { password: ALICE_PASSWORD },
       cookie: bob,
     });
     await expectApiError(del, 400, "validation_failed");
     const change = await api("/api/auth/password", {
-      body: { currentPassword: "alice fake words", newPassword: NEW_PASSWORD },
+      body: { currentPassword: ALICE_PASSWORD, newPassword: NEW_PASSWORD },
       cookie: bob,
     });
     await expectApiError(change, 400, "validation_failed");
     expect((await api("/api/auth/me", { cookie: alice.cookie })).status).toBe(200);
     expect((await api("/api/auth/me", { cookie: bob })).status).toBe(200);
-    expect((await loginUser("pw-alice", "alice fake words")).status).toBe(200);
+    expect((await loginUser("pw-alice", ALICE_PASSWORD)).status).toBe(200);
   });
 });
 

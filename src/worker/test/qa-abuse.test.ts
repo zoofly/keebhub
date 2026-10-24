@@ -16,9 +16,11 @@ import {
   GOOD_PASSWORD,
   loginUser,
   mockOutbound,
+  OTHER_PASSWORD,
   PASS_TOKEN,
   registerUser,
   sessionCookie,
+  WRONG_PASSWORD,
 } from "./helpers";
 
 const db = env.DB;
@@ -175,7 +177,7 @@ describe("rate-limit binding (about 10 a minute per IP on auth routes)", () => {
       // A different name each time, so the per-username lock stays out of it.
       (i: number) => ({
         username: `nobody${i}`,
-        password: "whatever words",
+        password: OTHER_PASSWORD,
         turnstileToken: PASS_TOKEN,
       }),
     ],
@@ -244,7 +246,7 @@ describe("Turnstile fails closed", () => {
     });
     await expectApiError(reg, 403, "forbidden");
     const login = await api("/api/auth/login", {
-      body: { username: "tsuser", password: "wrong password", turnstileToken: PASS_TOKEN },
+      body: { username: "tsuser", password: WRONG_PASSWORD, turnstileToken: PASS_TOKEN },
       ip: freshIp(),
     });
     await expectApiError(login, 403, "forbidden");
@@ -281,7 +283,7 @@ describe("Turnstile fails closed", () => {
     const before = await dbSnapshot(db);
     for (const turnstileToken of [undefined, "", "t".repeat(2049), 42]) {
       const res = await api("/api/auth/login", {
-        body: { username: "anyone", password: "whatever words", turnstileToken },
+        body: { username: "anyone", password: OTHER_PASSWORD, turnstileToken },
         ip: freshIp(),
       });
       await expectApiError(res, 400, "validation_failed");
@@ -294,7 +296,7 @@ describe("Turnstile fails closed", () => {
     await registerUser("bot-target");
     for (let i = 0; i < LOGIN_USER_RULE.max + 2; i += 1) {
       const res = await api("/api/auth/login", {
-        body: { username: "bot-target", password: "wrong password", turnstileToken: FAIL_TOKEN },
+        body: { username: "bot-target", password: WRONG_PASSWORD, turnstileToken: FAIL_TOKEN },
         ip: freshIp(),
       });
       expect(res.status).toBe(403);
@@ -338,7 +340,8 @@ describe("HIBP fails open", () => {
   it("asks with Add-Padding and ignores padding rows (count 0)", async () => {
     const urls: Request[] = [];
     vi.restoreAllMocks();
-    const password = "padded fake words";
+    const PADDED_PASSWORD = "padded fake words";
+    const password = PADDED_PASSWORD;
     const digest = Array.from(
       new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(password))),
       (b) => b.toString(16).padStart(2, "0"),

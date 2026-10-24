@@ -9,6 +9,8 @@ export const ORIGIN = "https://keebhub.test";
 export const PASS_TOKEN = "turnstile-pass";
 export const FAIL_TOKEN = "turnstile-fail";
 export const GOOD_PASSWORD = "fake test words";
+export const WRONG_PASSWORD = "wrong password";
+export const OTHER_PASSWORD = "whatever words";
 
 let ipCounter = 0;
 /** A fresh client IP, so the per-IP limits of one test don't affect another. */
