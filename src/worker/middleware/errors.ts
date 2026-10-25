@@ -49,11 +49,57 @@ export function notFound(c: Context<AppEnv>) {
 }
 
 /**
+ * Recognizes SQLite constraint failures from D1. These mean the request
+ * carried data the schema refused, so they are client errors, not 500s.
+ */
+export function constraintKind(err: unknown): "unique" | "check" | null {
+  if (!(err instanceof Error)) {
+    return null;
+  }
+  const cause = err.cause instanceof Error ? err.cause.message : "";
+  const text = `${err.message} ${cause}`;
+  if (
+    /UNIQUE constraint failed|PRIMARY KEY constraint failed|SQLITE_CONSTRAINT_(UNIQUE|PRIMARYKEY)/i.test(
+      text,
+    )
+  ) {
+    return "unique";
+  }
+  if (
+    /(CHECK|NOT NULL) constraint failed|SQLITE_CONSTRAINT_(CHECK|NOTNULL|DATATYPE)|cannot store \S+ value in \S+ column/i.test(
+      text,
+    )
+  ) {
+    return "check";
+  }
+  return null;
+}
+
+/**
  * app.onError: HTTPExceptions keep their status with a generic message;
- * anything else is a 500. Only 5xx are logged (method, path, cf-ray; never
- * the body).
+ * SQLite CHECK/NOT NULL/type failures become 400 validation_failed and
+ * UNIQUE failures 409 conflict, with generic messages (never SQL); anything
+ * else is a 500. Only 5xx are logged with the error (method, path, cf-ray;
+ * never the body).
  */
 export function onError(err: Error, c: Context<AppEnv>) {
+  const constraint = constraintKind(err);
+  if (constraint) {
+    // A schema/validation mismatch worth knowing about, without the SQL.
+    console.warn(
+      JSON.stringify({
+        message: "constraint violation",
+        constraint,
+        method: c.req.method,
+        path: c.req.path,
+        cfRay: c.req.header("cf-ray") ?? null,
+      }),
+    );
+    return constraint === "unique"
+      ? jsonError(c, 409, "conflict", "That conflicts with existing data")
+      : jsonError(c, 400, "validation_failed", "Invalid request");
+  }
+
   const status = err instanceof HTTPException ? err.status : 500;
   if (status >= 500) {
     console.error(
