@@ -102,7 +102,8 @@ export function listingErrorMessage(error: unknown): string {
  */
 function listingLimitMessage(error: { message: string; retryAfterSeconds: number | null }) {
   const base = error.message.trim() || "You've reached the listing limit.";
-  if (error.retryAfterSeconds === null) {
+  // The real API already says "Try again in N minutes"; don't repeat the wait.
+  if (error.retryAfterSeconds === null || /\btry again in\b/i.test(base)) {
     return base;
   }
   const sentence = /[.!?]$/.test(base) ? base : `${base}.`;

@@ -61,6 +61,12 @@ describe("listing cap messages (429 listing_limit)", () => {
     expect(listingErrorMessage(active)).toBe("You have 50 active listings.");
   });
 
+  it("doesn't repeat the wait when the server's message already gives it", () => {
+    const server = "You can post up to 20 listings an hour. Try again in 12 minutes.";
+    const hourly = new ApiRequestError(429, "listing_limit", server, {}, 700);
+    expect(listingErrorMessage(hourly)).toBe(server);
+  });
+
   it("keeps the generic message for other 429s", () => {
     const limited = new ApiRequestError(429, "rate_limited", "Too many", {}, 60);
     expect(listingErrorMessage(limited)).toBe(rateLimitedMessage(limited));
