@@ -90,14 +90,12 @@ export function ListingGrid({ query, what, empty, requiresUser = false }: Listin
     return <>{empty}</>;
   }
 
-  const focusHeading = () => document.querySelector<HTMLElement>("main h1")?.focus();
-
   return (
     <div className="flex flex-col gap-6">
       <ul ref={listRef} className="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-5">
         {items.map((posting) => (
           <li key={posting.id} className="flex">
-            <ListingCard posting={posting} currentUserId={me?.id} onDeleted={focusHeading} />
+            <ListingCard posting={posting} currentUserId={me?.id} />
           </li>
         ))}
       </ul>

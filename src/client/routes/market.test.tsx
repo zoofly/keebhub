@@ -141,8 +141,23 @@ describe("Market (signed in)", () => {
     expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
     await user.click(within(dialog).getByRole("button", { name: "Delete listing" }));
     await waitFor(() => expect(cards()).toHaveLength(3));
-    expect(await screen.findByText("Listing deleted")).toBeInTheDocument();
+    // The Delete button is gone with its card: focus lands on the page heading
+    // (not <body>) and the result is announced politely.
+    expect(screen.getByRole("heading", { level: 1, name: "My listings" })).toHaveFocus();
+    const announcement = await screen.findByText("Listing deleted");
+    expect(announcement.closest('[aria-live="polite"]')).not.toBeNull();
     expect(db.state.postings.some((posting) => posting.id === 18)).toBe(false);
+  });
+
+  it("cancelling returns focus to the Delete button that opened the dialog", async () => {
+    signInAs(1);
+    const { user } = renderApp("/mylistings");
+    await waitFor(() => expect(cards()).toHaveLength(4));
+    const button = within(cards()[0] as HTMLElement).getByRole("button", { name: /^delete/i });
+    await user.click(button);
+    // (jsdom doesn't fire <dialog> cancel on Escape; e2e covers Escape.)
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(button).toHaveFocus();
   });
 
   it("cancelling the delete dialog keeps the listing", async () => {

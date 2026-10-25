@@ -148,15 +148,6 @@ const pageQuery = (params: { limit: number; cursor?: string | undefined }) =>
 type PageParams = { limit: number; cursor?: string | undefined; signal?: AbortSignal | undefined };
 
 // ---------------------------------------------------------------------------
-// Health
-// ---------------------------------------------------------------------------
-
-export async function getHealth(signal?: AbortSignal): Promise<boolean> {
-  const res = await client().api.health.$get(undefined, signal ? { init: { signal } } : {});
-  return res.status === 200;
-}
-
-// ---------------------------------------------------------------------------
 // Accounts
 // ---------------------------------------------------------------------------
 

@@ -12,10 +12,14 @@ import { createRoutes } from "../router";
 
 /** A Turnstile stand-in that hands out a token straight away. */
 export function installFakeTurnstile(token = "test-turnstile-token") {
-  const fake: TurnstileApi = {
-    render: (_el, options) => {
+  /** The options each render() received (e.g. to check the action). */
+  const renders: { container: HTMLElement; action: string | undefined }[] = [];
+  const fake: TurnstileApi & { renders: typeof renders } = {
+    renders,
+    render: (container, options) => {
+      renders.push({ container, action: options.action });
       queueMicrotask(() => options.callback(token));
-      return "widget-1";
+      return `widget-${renders.length}`;
     },
     reset: () => {},
     remove: () => {},

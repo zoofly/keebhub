@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useId, useRef } from "react";
+import { focusPageHeading } from "../../lib/focus";
 import { Button } from "./button";
 
 type ConfirmDialogProps = {
@@ -15,6 +16,11 @@ type ConfirmDialogProps = {
   children?: ReactNode;
   /** Wrap the body in a <form> so Enter submits (used with `children` fields). */
   asForm?: boolean;
+  /**
+   * Where focus goes when the dialog closes, if not back to the opener (e.g.
+   * the opener is about to be removed). Return null to use the default.
+   */
+  focusAfterClose?: () => HTMLElement | null;
 };
 
 /**
@@ -34,7 +40,10 @@ export function ConfirmDialog({
   onCancel,
   children,
   asForm = false,
+  focusAfterClose,
 }: ConfirmDialogProps) {
+  const focusAfterCloseRef = useRef(focusAfterClose);
+  focusAfterCloseRef.current = focusAfterClose;
   const ref = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const opener = useRef<Element | null>(null);
@@ -62,8 +71,14 @@ export function ConfirmDialog({
       } else {
         dialog.removeAttribute("open");
       }
-      if (opener.current instanceof HTMLElement && opener.current.isConnected) {
+      // Only after close(): while the modal is open the rest of the page is inert.
+      const target = focusAfterCloseRef.current?.();
+      if (target) {
+        target.focus();
+      } else if (opener.current instanceof HTMLElement && opener.current.isConnected) {
         opener.current.focus();
+      } else {
+        focusPageHeading();
       }
     }
   }, [open, children]);

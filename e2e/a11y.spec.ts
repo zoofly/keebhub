@@ -83,3 +83,38 @@ test("open dialogs and menus are accessible too", async ({ page }) => {
     await expectAccessible(page);
   }
 });
+
+test("create form with the listing-cap error (429 listing_limit) is accessible", async ({
+  page,
+}, info) => {
+  await signIn(page, "kash", "/create");
+  // The contract's hourly-cap response (docs/api.md): 429, code
+  // listing_limit, Retry-After in seconds.
+  await page.route("**/api/postings", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({
+          status: 429,
+          headers: { "Retry-After": "1200" },
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: { code: "listing_limit", message: "You can create up to 20 listings an hour." },
+          }),
+        })
+      : route.fallback(),
+  );
+  await page.getByLabel("Title").fill("Cap test board");
+  await page.getByLabel("Photo URL").fill("https://img.keebhub.test/cap.svg");
+  await page.getByLabel("Price (USD)").fill("42.50");
+  await page.getByRole("button", { name: "Post listing" }).click();
+
+  const alert = page.getByRole("alert");
+  await expect(alert).toHaveText(
+    "You can create up to 20 listings an hour. Please wait about 20 minutes and try again.",
+  );
+  await expect(alert).toBeFocused();
+  await expect(page).toHaveURL(/\/create$/);
+  await expect(page.getByLabel("Title")).toHaveValue("Cap test board");
+  await expect(page.getByLabel("Price (USD)")).toHaveValue("42.50");
+  record(info.project.name, "/create (listing_limit error)", "kash", await expectAccessible(page));
+  await expectNoHorizontalScroll(page);
+});

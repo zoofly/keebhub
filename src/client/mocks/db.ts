@@ -16,10 +16,12 @@ export type MockState = {
   failedLogins: Record<string, number>;
   /** Test hooks: "GET /api/switches" -> how many upcoming requests fail with 500. */
   failNext: Record<string, number>;
+  /** When each user created a posting (ms), for the hourly listing cap. Kept after deletes. */
+  postingsCreated: { userId: number; at: number }[];
   nextId: number;
 };
 
-const STORAGE_KEY = "keebhub-mock-db-v2";
+const STORAGE_KEY = "keebhub-mock-db-v3";
 
 function seed(): MockState {
   return {
@@ -30,6 +32,7 @@ function seed(): MockState {
     sessionUserId: null,
     failedLogins: {},
     failNext: {},
+    postingsCreated: [],
     nextId: 1000,
   };
 }

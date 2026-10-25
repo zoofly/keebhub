@@ -85,6 +85,76 @@ describe("Create a listing", () => {
   });
 });
 
+describe("Create a listing: listing caps (429 listing_limit)", () => {
+  const fillValidForm = async (user: ReturnType<typeof renderApp>["user"]) => {
+    await user.type(field(/title/i), "Cap test board");
+    await user.type(field(/photo url/i), "https://img.keebhub.test/cap.svg");
+    await user.type(field(/price/i), "42.50");
+    await user.type(field(/description/i), "Keep me");
+  };
+
+  it("shows the server's message and the Retry-After wait, keeps the input, stays put", async () => {
+    signInAs(1);
+    server.use(
+      http.post("/api/postings", () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: "listing_limit",
+              message: "You can create up to 20 listings an hour.",
+            },
+          },
+          { status: 429, headers: { "Retry-After": "1500" } },
+        ),
+      ),
+    );
+    const { user, router } = renderApp("/create");
+    await screen.findByRole("heading", { level: 1, name: "Create a listing" });
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: "Post listing" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "You can create up to 20 listings an hour. Please wait about 25 minutes and try again.",
+    );
+    expect(alert).toHaveFocus();
+    expect(router.state.location.pathname).toBe("/create");
+    expect(field(/title/i)).toHaveValue("Cap test board");
+    expect(field(/photo url/i)).toHaveValue("https://img.keebhub.test/cap.svg");
+    expect(field(/price/i)).toHaveValue("42.50");
+    expect(field(/description/i)).toHaveValue("Keep me");
+    expect(screen.getByRole("button", { name: "Post listing" })).toBeEnabled();
+    expect(screen.queryByText("Listing posted!")).toBeNull();
+  });
+
+  it("shows the active-listing cap from the mock API (no Retry-After)", async () => {
+    signInAs(1);
+    // kash already has 4 seeded listings; top up to 50.
+    for (let n = 0; n < 46; n += 1) {
+      db.state.postings.push({
+        id: 5000 + n,
+        userId: 1,
+        title: `Filler ${n}`,
+        description: "",
+        imageUrl: "https://img.keebhub.test/f.svg",
+        priceCents: 100,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      });
+    }
+    const { user, router } = renderApp("/create");
+    await screen.findByRole("heading", { level: 1, name: "Create a listing" });
+    await fillValidForm(user);
+    await user.click(screen.getByRole("button", { name: "Post listing" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "You can have up to 50 active listings. Delete one to post another.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/wait/);
+    expect(router.state.location.pathname).toBe("/create");
+    expect(field(/title/i)).toHaveValue("Cap test board");
+  });
+});
+
 describe("Edit a listing", () => {
   it("pre-fills the price as dollars and saves", async () => {
     signInAs(1);

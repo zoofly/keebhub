@@ -35,6 +35,8 @@ const TURNSTILE_STUB = `
       // "compact" is 150px, so layouts that are too narrow scroll sideways
       // here too (e2e/shell.spec.ts checks).
       box.dataset.size = options.size || "normal";
+      // Echo the action the app asked for, so specs can check it.
+      box.dataset.action = options.action || "";
       if (options.size === "compact") box.style.width = "150px";
       else if (options.size === "flexible") { box.style.width = "100%"; box.style.minWidth = "300px"; }
       else box.style.width = "300px";

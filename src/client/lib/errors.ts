@@ -87,10 +87,26 @@ export function listingErrorMessage(error: unknown): string {
     case 413:
       return "That listing is too large. Shorten the description and try again.";
     case 429:
-      return rateLimitedMessage(error);
+      return error.code === "listing_limit"
+        ? listingLimitMessage(error)
+        : rateLimitedMessage(error);
     default:
       return GENERIC;
   }
+}
+
+/**
+ * 429 listing_limit from POST /api/postings: the server's own message (50
+ * active listings, or 20 created in the past hour), plus the wait when the
+ * hourly cap sent Retry-After.
+ */
+function listingLimitMessage(error: { message: string; retryAfterSeconds: number | null }) {
+  const base = error.message.trim() || "You've reached the listing limit.";
+  if (error.retryAfterSeconds === null) {
+    return base;
+  }
+  const sentence = /[.!?]$/.test(base) ? base : `${base}.`;
+  return `${sentence} Please wait ${waitText(error.retryAfterSeconds)} and try again.`;
 }
 
 export function loadErrorMessage(error: unknown, what: string): string {

@@ -126,4 +126,28 @@ describe("mock API contract", () => {
     expect(del.status).toBe(400);
     expect(ApiError.parse(await del.json()).error.fields?.password).toBeDefined();
   });
+
+  it("POST /api/postings: 429 listing_limit after 20 in an hour (Retry-After), and at 50 active", async () => {
+    db.state.sessionUserId = 2;
+    const body = { title: "x", imageUrl: "https://img.keebhub.test/x.svg", priceCents: 1 };
+    for (let n = 0; n < 20; n += 1) {
+      expect((await call("POST", "/api/postings", body)).status).toBe(201);
+    }
+    const hourly = await call("POST", "/api/postings", body);
+    expect(hourly.status).toBe(429);
+    expect(Number(hourly.headers.get("retry-after"))).toBeGreaterThan(0);
+    expect(ApiError.parse(await hourly.json()).error.code).toBe("listing_limit");
+
+    // A new hour, but top bench up to 50 active listings.
+    db.state.postingsCreated = [];
+    let active = db.state.postings.filter((p) => p.userId === 2).length;
+    for (; active < 50; active += 1) {
+      expect((await call("POST", "/api/postings", body)).status).toBe(201);
+    }
+    db.state.postingsCreated = [];
+    const capped = await call("POST", "/api/postings", body);
+    expect(capped.status).toBe(429);
+    expect(capped.headers.get("retry-after")).toBeNull();
+    expect(ApiError.parse(await capped.json()).error.code).toBe("listing_limit");
+  });
 });
