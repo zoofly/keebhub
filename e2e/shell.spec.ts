@@ -88,3 +88,19 @@ test("a page that throws shows the error page inside the layout", async ({ page 
   await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
   await expect(mainNav(page).or(page.getByRole("button", { name: "Menu" }))).toBeVisible();
 });
+
+test("the sign-up and log-in forms fit small phones with the security check", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "mobile", "sets its own phone widths; runs once");
+  // The home page nests the register card inside the hero card, which left
+  // too little room for the 300px "flexible" Turnstile widget at 360-375px.
+  for (const width of [320, 360, 375]) {
+    await page.setViewportSize({ width, height: 812 });
+    for (const path of ["/", "/register", "/login"]) {
+      await open(page, path);
+      await expect(page.getByTestId("turnstile-stub")).toBeVisible();
+      await expectNoHorizontalScroll(page);
+    }
+  }
+});

@@ -17,7 +17,7 @@ export function HomePage() {
       <section
         aria-labelledby="home-heading"
         className={cn(
-          "grid items-center gap-8 rounded-2xl border border-line bg-linear-to-br from-primary-soft to-surface p-5 sm:p-8",
+          "grid grid-cols-1 items-center gap-8 rounded-2xl border border-line bg-linear-to-br from-primary-soft to-surface p-5 sm:p-8",
           guest && "lg:grid-cols-[1.2fr_1fr]",
         )}
       >

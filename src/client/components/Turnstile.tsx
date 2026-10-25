@@ -31,6 +31,14 @@ declare global {
   }
 }
 
+/**
+ * Turnstile's "flexible" widget is at least 300px wide. Narrower containers
+ * (small phones, and the register card nested in the home page's hero at
+ * 360-375px) get the 150px "compact" widget instead, so the page never
+ * scrolls sideways.
+ */
+export const TURNSTILE_FLEXIBLE_MIN_WIDTH = 300;
+
 export const TURNSTILE_SCRIPT_SRC =
   "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
@@ -105,7 +113,8 @@ export function Turnstile({ onToken, action, ref }: TurnstileProps) {
           sitekey: siteKey,
           action,
           theme: "light",
-          size: "flexible",
+          size:
+            container.current.clientWidth >= TURNSTILE_FLEXIBLE_MIN_WIDTH ? "flexible" : "compact",
           callback: (token) => onTokenRef.current(token),
           "expired-callback": () => onTokenRef.current(null),
           "error-callback": () => onTokenRef.current(null),

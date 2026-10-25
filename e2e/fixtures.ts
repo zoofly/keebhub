@@ -31,6 +31,13 @@ const TURNSTILE_STUB = `
       const box = document.createElement("p");
       box.textContent = "Security check passed (test stub)";
       box.dataset.testid = "turnstile-stub";
+      // Sized like the real widget: "flexible" is never narrower than 300px,
+      // "compact" is 150px, so layouts that are too narrow scroll sideways
+      // here too (e2e/shell.spec.ts checks).
+      box.dataset.size = options.size || "normal";
+      if (options.size === "compact") box.style.width = "150px";
+      else if (options.size === "flexible") { box.style.width = "100%"; box.style.minWidth = "300px"; }
+      else box.style.width = "300px";
       el.appendChild(box);
       widgets.set(id, options);
       issue(id);
