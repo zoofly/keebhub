@@ -6,7 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HIBP_RANGE_URL } from "../auth/hibp";
 import { PBKDF2_ITERATIONS } from "../auth/password";
 import { SITEVERIFY_URL, verifyTurnstile } from "../auth/turnstile";
-import { LOGIN_IP_RULE, LOGIN_USER_RULE, loginIpKey, loginUserKey } from "../db/throttle";
+import {
+  ACCOUNT_SESSION_RULE,
+  LOGIN_IP_RULE,
+  LOGIN_USER_IP_RULE,
+  LOGIN_USER_RULE,
+  loginIpKey,
+  loginUserIpKey,
+  loginUserKey,
+} from "../db/throttle";
 import { nowSeconds } from "../lib/time";
 import {
   api,
@@ -33,27 +41,55 @@ afterEach(() => vi.restoreAllMocks());
 
 const retryAfter = (res: Response) => Number(res.headers.get("retry-after"));
 
-/** 10 wrong passwords for `username`, each from its own IP. */
-async function failLogins(username: string, times = LOGIN_USER_RULE.max) {
-  for (let i = 0; i < times; i += 1) {
-    const res = await loginUser(username, `wrong password ${i}`);
-    expect(res.status, `failure ${i + 1}`).toBe(401);
-  }
+/** Seeds an auth_throttle row as if `count` failures had happened. */
+async function seedFailures(key: string, count: number, lockedUntil: number | null = null) {
+  await db
+    .prepare(
+      "INSERT INTO auth_throttle (key, count, window_start, locked_until) VALUES (?, ?, ?, ?)",
+    )
+    .bind(key, count, nowSeconds() - 60, lockedUntil)
+    .run();
 }
 
-describe("login lockout (per username)", () => {
-  it("after 10 failures even the right password gets 429 + Retry-After, and nothing is written", async () => {
+const throttleRow = (key: string) =>
+  db
+    .prepare("SELECT count, locked_until FROM auth_throttle WHERE key = ?")
+    .bind(key)
+    .first<{ count: number; locked_until: number | null }>();
+
+describe("login lockout (per username + IP)", () => {
+  it("10 failures from one IP lock that name for that IP, and nothing else", async () => {
+    await registerUser("pair-locked");
+    const attacker = freshIp();
+    // Ten real failures from one IP: the Rate Limiting binding allows ten a
+    // minute, so all of them reach the password check.
+    for (let i = 0; i < LOGIN_USER_IP_RULE.max; i += 1) {
+      expect((await loginUser("pair-locked", `wrong ${i}`, attacker)).status).toBe(401);
+    }
+    const row = await throttleRow(loginUserIpKey("pair-locked", attacker));
+    expect(row?.count).toBe(LOGIN_USER_IP_RULE.max);
+    expect(row?.locked_until).toBeGreaterThan(nowSeconds() + LOGIN_USER_IP_RULE.lockSeconds - 10);
+    // The owner, from anywhere else, gets straight in: no weaponized lockout.
+    expect((await loginUser("pair-locked", GOOD_PASSWORD, freshIp())).status).toBe(200);
+  });
+
+  it("a locked pair gets 429 + Retry-After even with the right password, and nothing is written", async () => {
     await registerUser("locked-out");
-    await failLogins("locked-out");
+    const ip = "192.0.2.201";
+    await seedFailures(
+      loginUserIpKey("locked-out", ip),
+      LOGIN_USER_IP_RULE.max,
+      nowSeconds() + LOGIN_USER_IP_RULE.lockSeconds,
+    );
     const before = await dbSnapshot(db);
     const warnings: string[] = [];
     vi.spyOn(console, "warn").mockImplementation((...args: unknown[]) => {
       warnings.push(args.map(String).join(" "));
     });
-    const res = await loginUser("locked-out", GOOD_PASSWORD, "192.0.2.201");
+    const res = await loginUser("locked-out", GOOD_PASSWORD, ip);
     await expectApiError(res, 429, "rate_limited");
-    expect(retryAfter(res)).toBeGreaterThan(LOGIN_USER_RULE.lockSeconds - 10);
-    expect(retryAfter(res)).toBeLessThanOrEqual(LOGIN_USER_RULE.lockSeconds);
+    expect(retryAfter(res)).toBeGreaterThan(LOGIN_USER_IP_RULE.lockSeconds - 10);
+    expect(retryAfter(res)).toBeLessThanOrEqual(LOGIN_USER_IP_RULE.lockSeconds);
     expect(sessionCookie(res)).toBeNull();
     expect(await dbSnapshot(db)).toEqual(before);
     // The lockout is logged (A09) with a username hash and the IP, never the name or password.
@@ -62,54 +98,81 @@ describe("login lockout (per username)", () => {
       .find((e) => e.event === "auth.locked");
     expect(locked).toMatchObject({
       usernameHash: expect.stringMatching(/^[0-9a-f]{16}$/),
-      ip: "192.0.2.201",
+      ip,
     });
     expect(warnings.join("\n")).not.toMatch(/locked-out|fake test words/);
   });
 
+  it("failures from many IPs don't lock the owner out below the backstop", async () => {
+    await registerUser("spread-target");
+    for (let i = 0; i < LOGIN_USER_IP_RULE.max + 5; i += 1) {
+      expect((await loginUser("spread-target", `wrong ${i}`)).status).toBe(401);
+    }
+    expect((await loginUser("spread-target")).status).toBe(200);
+  });
+
   it("counts every spelling of the name against one key", async () => {
     await registerUser("CaseLock");
+    const ip = freshIp();
     const spellings = ["caselock", "CASELOCK", "CaseLock", "  caselock ", "cAsElOcK"];
-    for (let i = 0; i < LOGIN_USER_RULE.max; i += 1) {
-      expect((await loginUser(spellings[i % spellings.length] ?? "", `nope ${i}`)).status).toBe(
+    for (let i = 0; i < LOGIN_USER_IP_RULE.max; i += 1) {
+      expect((await loginUser(spellings[i % spellings.length] ?? "", `nope ${i}`, ip)).status).toBe(
         401,
       );
     }
-    await expectApiError(await loginUser("CaseLock"), 429, "rate_limited");
     const rows = await db
-      .prepare("SELECT key, count FROM auth_throttle WHERE key LIKE 'login:user:%caselock'")
+      .prepare("SELECT key, count FROM auth_throttle WHERE key LIKE 'login:%caselock%'")
       .all<{ key: string; count: number }>();
-    expect(rows.results).toEqual([{ key: "login:user:caselock", count: LOGIN_USER_RULE.max }]);
+    expect(rows.results).toEqual(
+      expect.arrayContaining([
+        { key: loginUserIpKey("caselock", ip), count: LOGIN_USER_IP_RULE.max },
+        { key: "login:user:caselock", count: LOGIN_USER_IP_RULE.max },
+      ]),
+    );
+    expect(rows.results).toHaveLength(2);
   });
 
   it("locks unknown usernames the same way (no hint that a name exists)", async () => {
-    await failLogins("nobody-here");
-    const res = await loginUser("nobody-here");
-    await expectApiError(res, 429, "rate_limited");
+    const ip = freshIp();
+    for (let i = 0; i < LOGIN_USER_IP_RULE.max; i += 1) {
+      expect((await loginUser("nobody-here", `wrong ${i}`, ip)).status).toBe(401);
+    }
+    const row = await throttleRow(loginUserIpKey("nobody-here", ip));
+    expect(row?.locked_until).toBeGreaterThan(nowSeconds());
   });
 
-  it("opens again once the lock has passed, and success clears the username's counter", async () => {
+  it("opens again once the lock has passed; success clears that IP's count but not the backstop", async () => {
     await registerUser("unlocked");
-    await failLogins("unlocked");
-    await db
-      .prepare("UPDATE auth_throttle SET locked_until = ?, window_start = ? WHERE key = ?")
-      .bind(
-        nowSeconds() - 1,
-        nowSeconds() - LOGIN_USER_RULE.windowSeconds - 1,
-        loginUserKey("unlocked"),
-      )
-      .run();
-    expect((await loginUser("unlocked")).status).toBe(200);
-    const row = await db
-      .prepare("SELECT 1 FROM auth_throttle WHERE key = ?")
-      .bind(loginUserKey("unlocked"))
-      .first();
-    expect(row).toBeNull();
+    const ip = freshIp();
+    await seedFailures(loginUserIpKey("unlocked", ip), LOGIN_USER_IP_RULE.max, nowSeconds() - 1);
+    await seedFailures(loginUserKey("unlocked"), 12);
+    expect((await loginUser("unlocked", GOOD_PASSWORD, ip)).status).toBe(200);
+    expect(await throttleRow(loginUserIpKey("unlocked", ip))).toBeNull();
+    expect((await throttleRow(loginUserKey("unlocked")))?.count).toBe(12);
+  });
+});
+
+describe("login backstop (per username, any IP)", () => {
+  it("100 failures in an hour from any IPs lock the name everywhere", async () => {
+    await registerUser("backstopped");
+    await seedFailures(loginUserKey("backstopped"), LOGIN_USER_RULE.max - 1);
+    expect((await loginUser("backstopped", "wrong again")).status).toBe(401);
+    const res = await loginUser("backstopped", GOOD_PASSWORD, freshIp());
+    await expectApiError(res, 429, "rate_limited");
+    expect(retryAfter(res)).toBeGreaterThan(LOGIN_USER_RULE.lockSeconds - 10);
+    expect(retryAfter(res)).toBeLessThanOrEqual(LOGIN_USER_RULE.lockSeconds);
   });
 
-  it("wrong current passwords on the password-change form count too, and lock login", async () => {
+  it("is far above the per-IP lock", () => {
+    expect(LOGIN_USER_RULE.max).toBeGreaterThanOrEqual(10 * LOGIN_USER_IP_RULE.max);
+    expect(LOGIN_USER_RULE.windowSeconds).toBe(3600);
+  });
+});
+
+describe("password change and account deletion have their own per-session throttle", () => {
+  it("5 wrong current passwords lock the forms for that session, but not login", async () => {
     const { cookie } = await registerUser("pw-guesser");
-    for (let i = 0; i < LOGIN_USER_RULE.max; i += 1) {
+    for (let i = 0; i < ACCOUNT_SESSION_RULE.max; i += 1) {
       const res = await api("/api/auth/password", {
         body: { currentPassword: `guess ${i}`, newPassword: "fresh fake words" },
         cookie,
@@ -123,15 +186,22 @@ describe("login lockout (per username)", () => {
       ip: freshIp(),
     });
     await expectApiError(right, 429, "rate_limited");
-    expect(retryAfter(right)).toBeGreaterThan(0);
-    await expectApiError(await loginUser("pw-guesser"), 429, "rate_limited");
-    // The session itself is fine; only password checks are locked.
+    expect(retryAfter(right)).toBeGreaterThan(ACCOUNT_SESSION_RULE.lockSeconds - 10);
+    // Deleting the account from that session is locked too.
+    const del = await api("/api/me", {
+      method: "DELETE",
+      body: { password: GOOD_PASSWORD },
+      cookie,
+    });
+    await expectApiError(del, 429, "rate_limited");
+    // Login is unaffected, and the session itself is fine.
+    expect((await loginUser("pw-guesser")).status).toBe(200);
     expect((await api("/api/auth/me", { cookie })).status).toBe(200);
   });
 
   it("wrong passwords on account deletion count too, and the account survives", async () => {
     const { cookie } = await registerUser("del-guesser");
-    for (let i = 0; i < LOGIN_USER_RULE.max; i += 1) {
+    for (let i = 0; i < ACCOUNT_SESSION_RULE.max; i += 1) {
       const res = await api("/api/me", {
         method: "DELETE",
         body: { password: `guess ${i}` },
@@ -145,8 +215,25 @@ describe("login lockout (per username)", () => {
       cookie,
     });
     await expectApiError(right, 429, "rate_limited");
-    expect(retryAfter(right)).toBeGreaterThan(0);
     expect((await api("/api/auth/me", { cookie })).status).toBe(200);
+  });
+
+  it("a login lockout doesn't block them", async () => {
+    const { cookie } = await registerUser("still-mine");
+    await seedFailures(loginUserKey("still-mine"), LOGIN_USER_RULE.max, nowSeconds() + 900);
+    expect((await loginUser("still-mine")).status).toBe(429);
+    const change = await api("/api/auth/password", {
+      body: { currentPassword: GOOD_PASSWORD, newPassword: "fresh fake words" },
+      cookie,
+      ip: freshIp(),
+    });
+    expect(change.status).toBe(204);
+    const del = await api("/api/me", {
+      method: "DELETE",
+      body: { password: "fresh fake words" },
+      cookie,
+    });
+    expect(del.status).toBe(204);
   });
 });
 
@@ -295,7 +382,7 @@ describe("Turnstile fails closed", () => {
 
   it("a failed bot check on login doesn't count as a failed password", async () => {
     await registerUser("bot-target");
-    for (let i = 0; i < LOGIN_USER_RULE.max + 2; i += 1) {
+    for (let i = 0; i < LOGIN_USER_IP_RULE.max + 2; i += 1) {
       const res = await api("/api/auth/login", {
         body: { username: "bot-target", password: WRONG_PASSWORD, turnstileToken: FAIL_TOKEN },
         ip: freshIp(),

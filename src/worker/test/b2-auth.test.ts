@@ -210,20 +210,25 @@ describe("POST /api/auth/login", () => {
     expect((await api("/api/auth/me", { cookie: fresh })).status).toBe(200);
   });
 
-  it("locks a username after 10 failures: the 11th returns 429 with Retry-After", async () => {
+  it("locks a username for one IP after 10 failures there; other IPs still log in", async () => {
     await registerUser("locked");
+    const ip = freshIp();
     for (let i = 0; i < 10; i += 1) {
-      expect(
-        (await loginUser("locked", "wrong password", freshIp())).status,
-        `attempt ${i + 1}`,
-      ).toBe(401);
+      expect((await loginUser("locked", "wrong password", ip)).status, `attempt ${i + 1}`).toBe(
+        401,
+      );
     }
-    const res = await loginUser("LOCKED", GOOD_PASSWORD, freshIp());
+    // The 11th try from that IP is refused (the per-IP binding allows ten a
+    // minute, and the username+IP lock is now set for 15 minutes).
+    const res = await loginUser("LOCKED", GOOD_PASSWORD, ip);
     expect(res.status).toBe(429);
-    const retryAfter = Number(res.headers.get("retry-after"));
-    expect(retryAfter).toBeGreaterThan(800);
-    expect(retryAfter).toBeLessThanOrEqual(900);
+    expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
     expect(ApiError.parse(await res.json()).error.code).toBe("rate_limited");
+    const row = await db
+      .prepare("SELECT locked_until FROM auth_throttle WHERE key LIKE 'login:userip:locked|%'")
+      .first<{ locked_until: number }>();
+    expect(row?.locked_until).toBeGreaterThan(nowSeconds() + 800);
+    expect((await loginUser("locked", GOOD_PASSWORD, freshIp())).status).toBe(200);
   });
 
   it("resets the username counter after a successful login", async () => {

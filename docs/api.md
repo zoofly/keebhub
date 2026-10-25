@@ -56,7 +56,16 @@ Register and login need a Turnstile token from the widget (site key from `GET /a
 
 Rules (from `src/shared`): usernames are 3-32 of letters, digits, `.`, `_`, `-`, starting with a letter or digit, and unique ignoring case; passwords are 8-128 characters with no other rules, but known-breached passwords are refused.
 
-Limits: 10 failed logins for a username in 15 minutes lock that username for 15 minutes; 30 failures from one IP lock the IP; 5 registrations per IP per hour. A successful login resets the username's count. On top of that, login/register/password allow about 10 requests a minute per IP. All of these answer **429** with `Retry-After`.
+Limits (per IP means the IPv4 address, or the IPv6 /64):
+
+- **Login, per username + IP:** 10 failures in 15 minutes lock that username *from that IP* for 15 minutes, so nobody can lock someone else out by guessing from elsewhere. A successful login from that IP clears the count.
+- **Login, per username from any IP:** 100 failures in an hour lock the username for 15 minutes (a backstop against distributed guessing).
+- **Login, per IP:** 30 failures in 15 minutes lock the IP for 15 minutes.
+- **Register, per IP:** 5 an hour.
+- **Password change and account deletion, per session:** 5 wrong passwords in 15 minutes lock both forms for that session for 15 minutes. Login lockouts don't block them, and their failures don't lock login.
+- **Login, register and password change** also allow about 10 requests a minute per IP.
+
+All of these answer **429** `rate_limited` with `Retry-After`.
 
 ## Signed-in user (`/api/me`, all 🔒)
 

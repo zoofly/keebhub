@@ -1,13 +1,19 @@
 // /api/me: the signed-in user's postings, saved listings and account.
 import { Hono } from "hono";
 import { z } from "zod";
-import { DeleteAccountInput, IdParam, normalizeUsername, PageQuery } from "../../shared/schemas";
+import { DeleteAccountInput, IdParam, PageQuery } from "../../shared/schemas";
 import { logAuthEvent } from "../auth/log";
 import { peppersFromEnv, verifyPassword } from "../auth/password";
 import { clearSessionCookie } from "../auth/session";
 import { listPostings, toPosting } from "../db/postings";
 import { listSaved, listSavedIds, savePosting, toSavedPosting, unsavePosting } from "../db/saved";
-import { LOGIN_USER_RULE, lockedFor, loginUserKey, recordAttemptStatement } from "../db/throttle";
+import {
+  ACCOUNT_SESSION_RULE,
+  accountSessionKey,
+  clearThrottleStatement,
+  lockedFor,
+  recordAttemptStatement,
+} from "../db/throttle";
 import { deleteUser, findCredentialsById } from "../db/users";
 import type { AppEnv } from "../env";
 import {
@@ -90,21 +96,24 @@ export const meRoutes = new Hono<AppEnv>()
     const user = c.get("user");
     const db = c.env.DB;
     const ip = clientIp(c);
-    const userKey = loginUserKey(normalizeUsername(user.username));
+    // Its own per-session throttle (shared with password change), separate
+    // from login lockouts.
+    const sessionKey = accountSessionKey(c.get("session").id);
 
-    const wait = await lockedFor(db, userKey);
+    const wait = await lockedFor(db, [sessionKey]);
     if (wait > 0) {
       return rateLimited(c, wait);
     }
     const credentials = await findCredentialsById(db, user.id);
     const result = await verifyPassword(password, credentials?.passwordHash, peppersFromEnv(c.env));
     if (!result.valid) {
-      await recordAttemptStatement(db, userKey, LOGIN_USER_RULE).run();
+      await recordAttemptStatement(db, sessionKey, ACCOUNT_SESSION_RULE).run();
       await logAuthEvent("auth.account_delete_failed", { userId: user.id, ip });
       return jsonError(c, 400, "validation_failed", "Password is incorrect", {
         password: ["Password is incorrect"],
       });
     }
+    await db.batch([clearThrottleStatement(db, sessionKey)]);
     await deleteUser(db, user.id);
     clearSessionCookie(c);
     await logAuthEvent("auth.account_deleted", { userId: user.id, ip });

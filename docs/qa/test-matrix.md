@@ -126,7 +126,7 @@ Test totals: Vitest **315 → 598** (worker 209 → 477, client 106 → 121); Pl
 | S24 | CSRF 4: no CORS at all | none → q-input (no `Access-Control-*` on a preflight or a cross-origin GET) | M | C |
 | S25 | Turnstile verified before any D1 write | b2 → q-abuse (full snapshots across 6 refused requests) | C | C |
 | S26 | Rate-limit binding: ~10/60 s per IP on `/api/auth/*`, 429 + Retry-After | none → q-abuse (login, register; Retry-After 60; other IPs unaffected; reads not limited) | M | C |
-| S27 | D1 throttle, login: 10/15 min per username (15 min lock), 30/15 min per IP; success resets the username | b2, thr → q-abuse (all spellings share a key, unknown names, per-IP via the endpoint, password-change and delete forms count) | P | C |
+| S27 | D1 throttle, login: 10/15 min per username + IP (15 min lock; success clears it), backstop 100/hour per username, 30/15 min per IP; IPv6 keyed by /64. Password change and delete: 5/15 min per session, separate from login (pre-launch review) | b2, thr, ip → q-abuse (pair lock leaves other IPs alone, spread failures don't lock the owner, backstop, all spellings share a key, unknown names, per-IP via the endpoint, per-session account-form lock that neither blocks nor is blocked by login) | P | C |
 | S28 | D1 throttle, register: 5 per IP per hour | b2 | C | C |
 | S29 | Body limit 100 KB | b1, q-input | C | C |
 | S30 | `_headers` CSP exactly as §4 | e2e:security-headers (string equality) | C | C |

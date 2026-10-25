@@ -18,11 +18,15 @@ import {
 import { verifyTurnstile } from "../auth/turnstile";
 import { deleteOtherSessionsStatement } from "../db/sessions";
 import {
+  ACCOUNT_SESSION_RULE,
+  accountSessionKey,
   clearThrottleStatement,
   LOGIN_IP_RULE,
+  LOGIN_USER_IP_RULE,
   LOGIN_USER_RULE,
   lockedFor,
   loginIpKey,
+  loginUserIpKey,
   loginUserKey,
   REGISTER_IP_RULE,
   recordAttemptStatement,
@@ -55,7 +59,7 @@ export const authRoutes = new Hono<AppEnv>()
     const ipKey = registerIpKey(ip);
 
     // Reads and the bot check come before any D1 write.
-    const wait = await lockedFor(db, ipKey);
+    const wait = await lockedFor(db, [ipKey]);
     if (wait > 0) {
       await logAuthEvent("auth.locked", { username, ip, cfRay });
       return rateLimited(c, wait);
@@ -101,10 +105,15 @@ export const authRoutes = new Hono<AppEnv>()
     const db = c.env.DB;
     const ip = clientIp(c);
     const cfRay = c.req.header("cf-ray") ?? null;
-    const userKey = loginUserKey(normalizeUsername(username));
+    const normalized = normalizeUsername(username);
+    // The hard lock is per username + IP, so a stranger can't lock an
+    // account by failing from elsewhere; the username-only key is a much
+    // higher backstop against distributed guessing.
+    const pairKey = loginUserIpKey(normalized, ip);
+    const userKey = loginUserKey(normalized);
     const ipKey = loginIpKey(ip);
 
-    const wait = await lockedFor(db, userKey, ipKey);
+    const wait = await lockedFor(db, [pairKey, userKey, ipKey]);
     if (wait > 0) {
       await logAuthEvent("auth.locked", { username, ip, cfRay });
       return rateLimited(c, wait);
@@ -120,6 +129,7 @@ export const authRoutes = new Hono<AppEnv>()
     const result = await verifyPassword(password, credentials?.passwordHash, peppers);
     if (!credentials || !result.valid) {
       await db.batch([
+        recordAttemptStatement(db, pairKey, LOGIN_USER_IP_RULE),
         recordAttemptStatement(db, userKey, LOGIN_USER_RULE),
         recordAttemptStatement(db, ipKey, LOGIN_IP_RULE),
       ]);
@@ -127,7 +137,9 @@ export const authRoutes = new Hono<AppEnv>()
       return jsonError(c, 401, "unauthorized", BAD_CREDENTIALS_MESSAGE);
     }
 
-    const writes = [clearThrottleStatement(db, userKey)];
+    // Success clears this IP's count for the name. The username backstop
+    // keeps counting: it caps guesses across all IPs within its hour.
+    const writes = [clearThrottleStatement(db, pairKey)];
     if (result.needsRehash) {
       const rehashed = await hashPassword(password, peppers);
       writes.push(updatePasswordHashStatement(db, credentials.user.id, rehashed));
@@ -166,9 +178,11 @@ export const authRoutes = new Hono<AppEnv>()
     const session = c.get("session");
     const db = c.env.DB;
     const ip = clientIp(c);
-    const userKey = loginUserKey(normalizeUsername(user.username));
+    // Its own per-session throttle: login lockouts don't block it, and its
+    // failures don't lock login.
+    const sessionKey = accountSessionKey(session.id);
 
-    const wait = await lockedFor(db, userKey);
+    const wait = await lockedFor(db, [sessionKey]);
     if (wait > 0) {
       return rateLimited(c, wait);
     }
@@ -176,7 +190,7 @@ export const authRoutes = new Hono<AppEnv>()
     const credentials = await findCredentialsById(db, user.id);
     const result = await verifyPassword(currentPassword, credentials?.passwordHash, peppers);
     if (!result.valid) {
-      await recordAttemptStatement(db, userKey, LOGIN_USER_RULE).run();
+      await recordAttemptStatement(db, sessionKey, ACCOUNT_SESSION_RULE).run();
       await logAuthEvent("auth.password_change_failed", { userId: user.id, ip });
       // 400, not 401: the session is fine, only the confirmation is wrong.
       return jsonError(c, 400, "validation_failed", "Current password is incorrect", {
@@ -194,7 +208,7 @@ export const authRoutes = new Hono<AppEnv>()
     await db.batch([
       updatePasswordHashStatement(db, user.id, passwordHash),
       deleteOtherSessionsStatement(db, user.id, session.id),
-      clearThrottleStatement(db, userKey),
+      clearThrottleStatement(db, sessionKey),
     ]);
     await logAuthEvent("auth.password_changed", { userId: user.id, ip });
     return c.body(null, 204);
