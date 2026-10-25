@@ -4,6 +4,7 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HIBP_RANGE_URL } from "../auth/hibp";
+import { PBKDF2_ITERATIONS } from "../auth/password";
 import { SITEVERIFY_URL, verifyTurnstile } from "../auth/turnstile";
 import { LOGIN_IP_RULE, LOGIN_USER_RULE, loginIpKey, loginUserKey } from "../db/throttle";
 import { nowSeconds } from "../lib/time";
@@ -438,7 +439,7 @@ describe("no username enumeration", () => {
     const unknownCalls = derive.mock.calls.map(
       ([params]) => (params as { iterations?: number }).iterations,
     );
-    expect(knownCalls).toEqual([100_000]);
+    expect(knownCalls).toEqual([PBKDF2_ITERATIONS]);
     expect(unknownCalls).toEqual(knownCalls);
     expect(unknown.status).toBe(known.status);
     expect(await unknown.text()).toBe(await known.text());

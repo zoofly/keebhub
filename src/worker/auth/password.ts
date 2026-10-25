@@ -8,15 +8,18 @@
 // can change later: verifyPassword reports `needsRehash` and the login
 // handler re-hashes with the current settings.
 //
-// Tuning: workerd caps PBKDF2 at 100,000 iterations, and the Free plan allows
-// about 10 ms of CPU per request. If production login cpuTime is too high,
-// lower PBKDF2_ITERATIONS (e.g. 50_000); existing hashes keep working and are
-// upgraded or downgraded on the next successful login.
+// Cost: 50,000 iterations (Kash's decision before launch). workerd caps PBKDF2
+// at 100,000, but the Free plan allows about 10 ms of CPU per request, and a
+// password change hashes twice (verify + new hash), so 100k left no headroom
+// on Cloudflare's cores. The secret pepper is the main defence against a
+// database-only leak: without the Worker secret, the hashes can't be
+// attacked at any iteration count. Changing PBKDF2_ITERATIONS later is safe:
+// existing hashes keep working and are re-hashed on the next successful login.
 
 import { bytesEqual, randomBytes } from "../lib/crypto";
 import { fromBase64, toBase64, utf8 } from "../lib/encoding";
 
-export const PBKDF2_ITERATIONS = 100_000;
+export const PBKDF2_ITERATIONS = 50_000;
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
 const FORMAT_VERSION = 1;
@@ -90,6 +93,7 @@ export function parsePasswordHash(stored: string): ParsedHash | null {
     return null;
   }
   const iterations = Number(match[2]);
+  // workerd refuses more than 100,000 iterations.
   if (iterations < 1 || iterations > 100_000) {
     return null;
   }

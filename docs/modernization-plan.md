@@ -9,6 +9,7 @@
 >   - Sessions last **7 days sliding, with a 30-day absolute cap**. They're stored server-side in D1 and can be revoked.
 >   - Seed the switch catalog with about **20 well-known switches** (name, type, manufacturer; no images).
 >   - Host on **workers.dev**, with no custom domain.
+> - **Passwords use PBKDF2 at 50k iterations** (2026-10-25, before launch), not the workerd maximum of 100k, so every path including a password change fits the 10 ms CPU limit; the pepper carries the protection against a database-only leak (§4).
 > - **No deploys or Cloudflare resource creation by agents.** Use local D1 and workerd only (`vite dev`, `vite preview`, vitest pool). Kash approves the first real deploy, `wrangler d1 create`, the secrets and the Turnstile widget. Until then, Phase 0's exit check is `/api/health` passing locally, and `database_id` stays a placeholder.
 >
 > **Lessons from the legacy review (must carry forward)**
@@ -39,7 +40,7 @@ Kash's decision is the starting point: everything runs on Cloudflare's free tier
 | API | **Hono 4** on Workers, typed `Bindings`, Hono RPC (`hc`) client | Small and fast, built for Workers, with built-in `secureHeaders` and `bodyLimit`. RPC gives the SPA end-to-end types without codegen | $0 |
 | Database | **D1**, with **raw SQL migrations** applied by `wrangler d1 migrations apply` and a thin typed query module | 4–6 tables and about 15 queries don't justify an ORM. Drizzle is still 0.45 with 1.0 at RC stage, so it would bring churn. Kash reads SQL fluently, and reviewable `.sql` files suit her IaC habits | $0 |
 | Validation | **zod 4** schemas in `src/shared/`, used by Hono (`@hono/zod-validator`) and by forms (`@hookform/resolvers`) | One source of truth for the limits that are currently copied by hand between `postings.router.js` and `utils/validation.js` | $0 |
-| Auth | **Hand-rolled D1 session table** following Lucia's published `auth_session.ts` pattern. **Passwords use PBKDF2-HMAC-SHA256 at 100k iterations plus a secret pepper.** Turnstile protects register and login. **Passkeys are added later** with `@simplewebauthn/server`, the same library as KeyPass | The 10 ms free-plan CPU budget rules out bcrypt, scrypt, and Better Auth's default hasher (see §2). This is about 150 lines Kash can own and reuse in KeyPass | $0 |
+| Auth | **Hand-rolled D1 session table** following Lucia's published `auth_session.ts` pattern. **Passwords use PBKDF2-HMAC-SHA256 at 50k iterations plus a secret pepper.** Turnstile protects register and login. **Passkeys are added later** with `@simplewebauthn/server`, the same library as KeyPass | The 10 ms free-plan CPU budget rules out bcrypt, scrypt, and Better Auth's default hasher (see §2). This is about 150 lines Kash can own and reuse in KeyPass | $0 |
 | Rate limiting | **D1 throttle table** (per username and per IP, authoritative) plus the **Workers Rate Limiting binding** as a coarse per-IP guard if it deploys on Free | The binding is per-location and eventually consistent, and its Free-plan availability isn't documented. D1 is exact | $0 |
 | Bot protection | **Turnstile** on register and login | Free with unlimited challenges, no card. It also keeps bots from using up the 100k writes/day D1 budget | $0 |
 | Images | **Keep pasted image URLs, now https-only** and validated. Optional later: **KV uploads** (≤1 MB, re-encoded in the browser) | R2 needs a subscription checkout, and Cloudflare Images storage is paid-only. KV is free and needs no card | $0 |
@@ -288,15 +289,21 @@ Query module rules:
 
 ### Passwords (Phase B2)
 
-The algorithm is **PBKDF2-HMAC-SHA256, 100,000 iterations** (the workerd maximum), with a 16-byte random salt and 32-byte output, run through Web Crypto `deriveBits`.
+The algorithm is **PBKDF2-HMAC-SHA256, 50,000 iterations**, with a 16-byte random salt and 32-byte output, run through Web Crypto `deriveBits`.
+
+**Why 50k, not the workerd maximum of 100k** (Kash's decision, 2026-10-25, before launch):
+
+- Every request must fit the Free plan's 10 ms CPU limit. A password change derives twice (verify the current password, hash the new one), which measured about 12 ms locally at 100k, before accounting for Cloudflare's slower cores.
+- The pepper is the main defence against a database-only leak: without the Worker secret the hashes can't be attacked at any iteration count. Iterations only matter if the pepper leaks too.
+- There are no users yet, so the change costs nothing. Each hash records its iteration count, so it can be raised later (hashes are upgraded on the next login).
 
 **Pepper (pre-hash):** `input = HMAC-SHA256(key = PASSWORD_PEPPER_V1, msg = NFC(password))`.
 
 - The pepper is a 32-byte random value stored as a Worker **secret**, never in D1.
 - If someone dumps D1 without also getting the Worker secrets, the hashes can't be cracked.
-- OWASP lists peppering as defense in depth. Here it partly makes up for running 100k iterations instead of 600k.
+- OWASP lists peppering as defense in depth. Here it partly makes up for running 50k iterations instead of 600k.
 
-**Stored format:** `$pbkdf2-sha256$v=1$i=100000$p=1$<salt b64>$<hash b64>`. `p` is the pepper version. Storing algorithm, cost, and pepper version with each hash means we can raise the cost, rotate the pepper, or move to passkeys later, rehashing on the next login.
+**Stored format:** `$pbkdf2-sha256$v=1$i=50000$p=1$<salt b64>$<hash b64>`. `p` is the pepper version. Storing algorithm, cost, and pepper version with each hash means we can raise the cost, rotate the pepper, or move to passkeys later, rehashing on the next login.
 
 **Verification:**
 
@@ -312,7 +319,7 @@ The algorithm is **PBKDF2-HMAC-SHA256, 100,000 iterations** (the workerd maximum
 **CPU budget check (exit criterion for B2):**
 
 - Deploy, run 50 logins, and read `cpuTime` in Workers Observability or `wrangler tail`.
-- If the p95 is over about 15 ms, or any Error 1102 (CPU exceeded) shows up, first drop to 50k iterations with the pepper. If it still fails, go **passkey-first** (Phase B5) and make passwords optional.
+- Include password changes, which derive twice. If the p95 is over about 10 ms, or any Error 1102 (CPU exceeded) shows up at 50k, go **passkey-first** (Phase B5) and make passwords optional.
 - Kash should decide whether passkeys are optional or the primary sign-in (§7).
 
 ### Sessions (Lucia `auth_session.ts` pattern)
@@ -688,8 +695,8 @@ There's a reasonable portfolio stretch for later, with local or encrypted-in-rep
 
 | Risk / question | Mitigation / who decides |
 |---|---|
-| **Login CPU over 10 ms on real hardware** (PBKDF2 100k ≈ 7 ms on an M5) | Measure in B2. Fallbacks in order: 50k iterations + pepper, then passkey-first (B5). **Kash decides:** are passkeys the primary sign-in, with passwords as fallback? KeyPass synergy argues yes |
-| PBKDF2 at 100k is below OWASP's 600k | Pepper kept outside D1; breached-password check; throttling; passkeys. Documented as an accepted risk |
+| **Login CPU over 10 ms on real hardware** (PBKDF2 50k ≈ 3.5 ms on an M5; a password change derives twice) | Iterations already lowered to 50k before launch. Measure after the first deploy; the fallback is passkey-first (B5). **Kash decides:** are passkeys the primary sign-in, with passwords as fallback? KeyPass synergy argues yes |
+| PBKDF2 at 50k is below OWASP's 600k | Pepper kept outside D1; breached-password check; throttling; passkeys. Documented as an accepted risk |
 | Free-tier daily quotas (100k requests, 100k D1 writes) can be exhausted by an attacker, taking the site down until 00:00 UTC | Turnstile + throttle before writes. A custom domain on a Cloudflare zone would unlock the free WAF rate-limit rule (1 rule, 10 s period). Acceptable for a hobby app |
 | Rate Limiting binding may not deploy on Free (undocumented) | The code feature-detects it; D1 throttle is authoritative |
 | `STRICT` tables on D1 unverified | Check in Phase 0; if rejected, drop `STRICT` and rely on CHECKs |

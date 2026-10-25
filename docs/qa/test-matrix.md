@@ -100,7 +100,7 @@ Test totals: Vitest **315 → 598** (worker 209 → 477, client 106 → 121); Pl
 
 | ID | Requirement | Tests | Before | After |
 |---|---|---|---|---|
-| S1 | PBKDF2-HMAC-SHA256, 100,000 iterations (workerd cap) | pw "uses at most workerd's PBKDF2 limit"; q-abuse (100,000 seen on login) | C | C |
+| S1 | PBKDF2-HMAC-SHA256, 50,000 iterations (half the workerd cap of 100,000; Kash's pre-launch decision so a password change fits 10 ms of CPU) | pw "uses at most workerd's PBKDF2 limit", "uses 50,000 iterations"; q-abuse (PBKDF2_ITERATIONS seen on login) | C | C |
 | S2 | 16-byte salt, 32-byte output | pw (parse rejects other sizes) | C | C |
 | S3 | Pepper: HMAC-SHA256(pepper, NFC(password)); pepper only a secret | pw "depends on the pepper", "NFC-normalizes"; q-input (NFC/NFD login) | C | C |
 | S4 | PHC string with algorithm, cost, pepper version | pw | C | C |
@@ -262,8 +262,8 @@ Measured 2026-10-24 on an Apple Silicon Mac (darwin/arm64, Node 26.12), with the
 
 | Constraint (plan §2) | Local result |
 |---|---|
-| C1/C3 login CPU ≤ ~10 ms | `node src/worker/bench/login-cpu.mjs 50` (built Worker in workerd, sequential, wall time incl. local D1): native PBKDF2-SHA256 100k p50 7.1 ms; `GET /api/health` p50 0.5 ms; **login success p50 7.5 / p95 8.1 ms**; login unknown user p50 7.2 / p95 8.0 ms; register p50 7.7 / p95 9.0 ms. Inside the 10 ms budget with ~20% headroom on a fast core; Cloudflare's cores may be slower, so production `cpuTime` (post-deploy item 1) decides |
-| C2 PBKDF2 capped at 100,000 in workerd | `PBKDF2_ITERATIONS = 100_000`; pw asserts it; q-abuse sees exactly 100,000 per login |
+| C1/C3 password paths ≤ ~10 ms CPU | `npm run build && node src/worker/bench/login-cpu.mjs 50` (built Worker in workerd, sequential, wall time incl. local D1, Apple M5) at **50,000 iterations**: native PBKDF2-SHA256 50k p50 3.5 ms; `GET /api/health` p50 0.5 ms; **login success p50 4.4 / p95 4.9 ms**; login unknown user p50 4.3 / p95 5.6 ms; **register p50 4.4 / p95 5.3 ms**; **password change (two derivations) p50 7.0 / p95 7.5 ms**. At 100k the password change measured about 12-14 ms, which is why the count was halved. Cloudflare's cores may be slower, so production `cpuTime` (post-deploy item 1) decides |
+| C2 PBKDF2 capped at 100,000 in workerd | `PBKDF2_ITERATIONS = 50_000` (below the cap); pw asserts both; q-abuse sees exactly `PBKDF2_ITERATIONS` per login; stored hashes with any count up to 100,000 still verify and are re-hashed on login |
 | C4 D1 FKs on by default; STRICT tables | Local D1 via `wrangler d1 migrations apply --local` then `wrangler d1 execute --local`: all 6 app tables `strict = 1`, `PRAGMA foreign_keys = 1`, an orphan insert fails with `SQLITE_CONSTRAINT_FOREIGNKEY`, TEXT into an INTEGER column fails with `SQLITE_CONSTRAINT_DATATYPE`. Remote D1: post-deploy |
 | C8 `_headers` applies to assets only; API headers from Hono | e2e:security-headers (both sides) |
 | C9 Vite plugin layout, `run_worker_first: ["/api/*"]` | e2e:smoke (deep link → index.html; unknown `/api/x` → JSON 404) |
@@ -278,7 +278,7 @@ Measured 2026-10-24 on an Apple Silicon Mac (darwin/arm64, Node 26.12), with the
 
 Only a real deploy can answer these:
 
-1. **Login CPU:** run ~50 logins against `workers.dev` and read `cpuTime` (Workers Observability or `wrangler tail`). p95 should stay under ~10 ms with no Error 1102; otherwise lower `PBKDF2_ITERATIONS` (plan §4).
+1. **Password-path CPU:** run ~50 logins and a few password changes against `workers.dev` and read `cpuTime` (Workers Observability or `wrangler tail`). p95 should stay under ~10 ms with no Error 1102, including the password change (two derivations); otherwise go passkey-first (plan §4).
 2. **D1 remote:** `wrangler d1 migrations apply DB --remote` succeeds (STRICT accepted), then `wrangler d1 execute DB --remote --command "SELECT name, strict FROM pragma_table_list"` shows `strict = 1` and `PRAGMA foreign_keys` is 1.
 3. **Rate Limiting binding** deployed on the Free plan (`AUTH_LIMITER`); if not, remove it and rely on the D1 throttle.
 4. **`__Host-` cookie over real HTTPS:** after login, the browser shows `__Host-keebhub_session` (Secure, HttpOnly, SameSite=Lax, no Domain) for `keebhub.<acct>.workers.dev` only.

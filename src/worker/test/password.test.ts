@@ -20,6 +20,10 @@ describe("password hashing", () => {
     expect(PBKDF2_ITERATIONS).toBeLessThanOrEqual(100_000);
   });
 
+  it("uses 50,000 iterations (fits the Free plan's CPU budget with a password change)", () => {
+    expect(PBKDF2_ITERATIONS).toBe(50_000);
+  });
+
   it("formats a PHC-style string that parses and re-formats unchanged", async () => {
     const stored = await hashPassword(PASSWORD, V1);
     expect(stored).toMatch(

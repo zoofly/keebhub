@@ -1,5 +1,5 @@
-// Local CPU benchmark for login (plan B2 exit check, done locally until a
-// production deploy can report real cpuTime).
+// Local CPU benchmark for the password paths (login, register, password
+// change), done locally until a production deploy can report real cpuTime.
 //
 //   npm run build && node src/worker/bench/login-cpu.mjs [iterations=40]
 //
@@ -16,6 +16,8 @@ import { convertV4MiniflareOptions, Miniflare } from "miniflare";
 const N = Number(process.argv[2] ?? 40);
 const root = path.resolve(import.meta.dirname, "../../..");
 const ORIGIN = "https://keebhub.bench";
+// The Turnstile action the next request's token was issued for.
+let turnstileAction = "login";
 
 const mf = new Miniflare(
   convertV4MiniflareOptions({
@@ -32,7 +34,11 @@ const mf = new Miniflare(
     },
     outboundService: async (request) => {
       if (request.url.includes("siteverify")) {
-        return Response.json({ success: true });
+        return Response.json({
+          success: true,
+          hostname: new URL(ORIGIN).hostname,
+          action: turnstileAction,
+        });
       }
       return new Response("0000000000000000000000000000000000A:0\r\n");
     },
@@ -49,14 +55,20 @@ const nextIp = () => {
   ipCounter += 1;
   return `198.51.100.${ipCounter}`;
 };
-const call = (pathname, body, ip = nextIp()) =>
-  mf.dispatchFetch(`${ORIGIN}${pathname}`, {
+const call = (pathname, body, { ip = nextIp(), cookie } = {}) => {
+  turnstileAction = pathname.endsWith("/register") ? "register" : "login";
+  const headers = body
+    ? { "content-type": "application/json", origin: ORIGIN, "cf-connecting-ip": ip }
+    : { "cf-connecting-ip": ip };
+  if (cookie) {
+    headers.cookie = cookie;
+  }
+  return mf.dispatchFetch(`${ORIGIN}${pathname}`, {
     method: body ? "POST" : "GET",
-    headers: body
-      ? { "content-type": "application/json", origin: ORIGIN, "cf-connecting-ip": ip }
-      : { "cf-connecting-ip": ip },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+};
 
 const percentile = (values, p) => {
   const sorted = [...values].sort((a, b) => a - b);
@@ -88,13 +100,12 @@ const register = await call("/api/auth/register", {
 if (register.status !== 201) {
   throw new Error(`register failed: ${register.status} ${await register.text()}`);
 }
+const cookie = (register.headers.get("set-cookie") ?? "").split(";")[0];
+const otherPassword = randomBytes(12).toString("base64url");
 
 console.log(
   `n=${N}, sequential requests, Node ${process.version}, ${process.platform}/${process.arch}\n`,
 );
-await measure("node:crypto pbkdf2Sync sha256 100k (native)", () => {
-  pbkdf2Sync(password, "0123456789abcdef", 100_000, 32, "sha256");
-});
 await measure("node:crypto pbkdf2Sync sha256 50k (native)", () => {
   pbkdf2Sync(password, "0123456789abcdef", 50_000, 32, "sha256");
 });
@@ -108,5 +119,19 @@ await measure("workerd POST /api/auth/login (unknown user)", (i) =>
 await measure("workerd POST /api/auth/register", (i) =>
   call("/api/auth/register", { username: `bencher${i + 2}`, password, turnstileToken: "x" }),
 );
+// Verifies the current password and hashes the new one: two derivations.
+// Alternates between two passwords so every call succeeds.
+await measure("workerd POST /api/auth/password (change)", async (i) => {
+  const [from, to] = (i + 1) % 2 === 0 ? [password, otherPassword] : [otherPassword, password];
+  const res = await call(
+    "/api/auth/password",
+    { currentPassword: from, newPassword: to },
+    { ip: "198.51.100.250", cookie },
+  );
+  if (res.status !== 204) {
+    throw new Error(`password change failed: ${res.status} ${await res.text()}`);
+  }
+  return res;
+});
 
 await mf.dispose();
