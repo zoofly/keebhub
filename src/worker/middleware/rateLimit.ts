@@ -1,5 +1,6 @@
 import type { Context, Env as HonoEnv, MiddlewareHandler } from "hono";
 import type { AppEnv } from "../env";
+import { ipKeyPart } from "../lib/ip";
 import { jsonError } from "./errors";
 
 /** The client IP as Cloudflare reports it (absent in some local setups). */
@@ -20,7 +21,7 @@ export function rateLimited<E extends HonoEnv>(c: Context<E>, retryAfterSeconds:
 export const authRateLimit: MiddlewareHandler<AppEnv> = async (c, next) => {
   const limiter = c.env.AUTH_LIMITER as RateLimit | undefined;
   if (limiter) {
-    const { success } = await limiter.limit({ key: clientIp(c) ?? "unknown" });
+    const { success } = await limiter.limit({ key: ipKeyPart(clientIp(c)) });
     if (!success) {
       return rateLimited(c, 60);
     }

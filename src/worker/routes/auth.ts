@@ -52,7 +52,7 @@ export const authRoutes = new Hono<AppEnv>()
     const db = c.env.DB;
     const ip = clientIp(c);
     const cfRay = c.req.header("cf-ray") ?? null;
-    const ipKey = registerIpKey(ip ?? "unknown");
+    const ipKey = registerIpKey(ip);
 
     // Reads and the bot check come before any D1 write.
     const wait = await lockedFor(db, ipKey);
@@ -102,7 +102,7 @@ export const authRoutes = new Hono<AppEnv>()
     const ip = clientIp(c);
     const cfRay = c.req.header("cf-ray") ?? null;
     const userKey = loginUserKey(normalizeUsername(username));
-    const ipKey = loginIpKey(ip ?? "unknown");
+    const ipKey = loginIpKey(ip);
 
     const wait = await lockedFor(db, userKey, ipKey);
     if (wait > 0) {

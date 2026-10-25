@@ -2,6 +2,7 @@
 // abuse (plan §4). Checks are reads; counters are written only after
 // Turnstile has passed, so failed bot checks cost no D1 writes.
 
+import { ipKeyPart } from "../lib/ip";
 import { nowSeconds } from "../lib/time";
 
 export interface ThrottleRule {
@@ -21,8 +22,9 @@ export const REGISTER_IP_RULE: ThrottleRule = { max: 5, windowSeconds: 3600, loc
 const LONGEST_WINDOW_SECONDS = 3600;
 
 export const loginUserKey = (normalizedUsername: string) => `login:user:${normalizedUsername}`;
-export const loginIpKey = (ip: string) => `login:ip:${ip}`;
-export const registerIpKey = (ip: string) => `register:ip:${ip}`;
+/** Per-IP keys use the IPv4 address or the IPv6 /64 (see lib/ip.ts). */
+export const loginIpKey = (ip: string | null) => `login:ip:${ipKeyPart(ip)}`;
+export const registerIpKey = (ip: string | null) => `register:ip:${ipKeyPart(ip)}`;
 
 /**
  * Seconds until the longest active lock on either key ends, or 0 if neither
