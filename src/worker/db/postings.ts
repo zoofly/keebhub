@@ -70,21 +70,57 @@ export async function getPosting(db: D1Database, id: number): Promise<PostingWit
   return row ? toPosting(row) : null;
 }
 
+export interface ListingUsage {
+  /** The user's current listings. */
+  active: number;
+  /** Listings created within the window (deleted ones included). */
+  recent: number;
+  /** created_at of the oldest create still in the window, or null. */
+  oldestRecent: number | null;
+}
+
+/** One read: how close the user is to the listing limits. */
+export async function listingUsage(
+  db: D1Database,
+  userId: number,
+  since: number,
+): Promise<ListingUsage> {
+  const row = await db
+    .prepare(
+      `SELECT
+         (SELECT count(*) FROM postings WHERE user_id = ?1) AS active,
+         (SELECT count(*) FROM posting_creates WHERE user_id = ?1 AND created_at > ?2) AS recent,
+         (SELECT min(created_at) FROM posting_creates WHERE user_id = ?1 AND created_at > ?2) AS oldest`,
+    )
+    .bind(userId, since)
+    .first<{ active: number; recent: number; oldest: number | null }>();
+  return { active: row?.active ?? 0, recent: row?.recent ?? 0, oldestRecent: row?.oldest ?? null };
+}
+
+/** Inserts the posting and logs the create for the hourly limit, atomically. */
 export async function createPosting(
   db: D1Database,
   userId: number,
   input: PostingInput,
 ): Promise<number> {
-  const row = await db
-    .prepare(
-      "INSERT INTO postings (user_id, title, description, image_url, price_cents) VALUES (?, ?, ?, ?, ?) RETURNING id",
-    )
-    .bind(userId, input.title, input.description, input.imageUrl, input.priceCents)
-    .first<{ id: number }>();
-  if (!row) {
+  const [inserted] = await db.batch<{ id: number }>([
+    db
+      .prepare(
+        "INSERT INTO postings (user_id, title, description, image_url, price_cents) VALUES (?, ?, ?, ?, ?) RETURNING id",
+      )
+      .bind(userId, input.title, input.description, input.imageUrl, input.priceCents),
+    db.prepare("INSERT INTO posting_creates (user_id) VALUES (?)").bind(userId),
+  ]);
+  const id = inserted?.results[0]?.id;
+  if (id === undefined) {
     throw new Error("INSERT INTO postings returned no row");
   }
-  return row.id;
+  return id;
+}
+
+/** Drops create-log rows older than the hourly window (daily cron). */
+export function purgePostingCreatesStatement(db: D1Database, before: number) {
+  return db.prepare("DELETE FROM posting_creates WHERE created_at <= ?").bind(before);
 }
 
 /** Returns false when the posting doesn't exist or isn't the user's. */

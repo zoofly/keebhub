@@ -29,3 +29,9 @@ export const CURSOR_MAX = 200;
 export const BODY_LIMIT_BYTES = 100 * 1024;
 
 export const TURNSTILE_TOKEN_MAX = 2048;
+
+/** Listings one user can have at once (POST /api/postings answers 429 listing_limit). */
+export const LISTINGS_ACTIVE_MAX = 50;
+/** Listings one user can create per rolling hour, deleted ones included. */
+export const LISTINGS_CREATED_PER_HOUR_MAX = 20;
+export const LISTINGS_RATE_WINDOW_SECONDS = 60 * 60;

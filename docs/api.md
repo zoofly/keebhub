@@ -13,7 +13,7 @@ The Worker serves everything under `/api/*`; every other path is the SPA. Types 
   { "error": { "code": "validation_failed", "message": "Invalid request", "fields": { "password": ["Password must be at least 8 characters"] } } }
   ```
 
-  `code` is one of `validation_failed` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `payload_too_large` (413), `unsupported_media_type` (415), `rate_limited` (429, with a `Retry-After` header in seconds), `unavailable` (503), `internal` (500). `fields` (field name to messages) is present on validation errors; field names match the request body keys.
+  `code` is one of `validation_failed` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `payload_too_large` (413), `unsupported_media_type` (415), `rate_limited` (429, with a `Retry-After` header in seconds), `listing_limit` (429, see [Listing limits](#listing-limits)), `unavailable` (503), `internal` (500). `fields` (field name to messages) is present on validation errors; field names match the request body keys.
 - **Caching.** Responses are `Cache-Control: no-store` unless listed otherwise.
 - **Ids** in paths are positive integers up to 2147483647; anything else is **400**.
 - **Paging** (`PageQuery`): `?limit=` (default 20, clamped to 1..100; non-digits are 400) and `?cursor=` (opaque; pass back `nextCursor` unchanged; a bad cursor is 400). Paged responses are `{ "items": [...], "nextCursor": "..." | null }`; `null` means there are no more items.
@@ -82,8 +82,23 @@ All of these answer **429** `rate_limited` with `Retry-After`.
 
 | Method and path | Request | Success | Errors |
 |---|---|---|---|
-| `POST /api/postings` | `PostingInput` `{ title, description?, imageUrl, priceCents }` | 201 `PostingWithSeller` | 400, 401 |
+| `POST /api/postings` | `PostingInput` `{ title, description?, imageUrl, priceCents }` | 201 `PostingWithSeller` | 400, 401, 429 `listing_limit` |
 | `PUT /api/postings/:id` | `PostingInput` | 200 `PostingWithSeller` | 400, 401, 404 (missing **or not yours**) |
 | `DELETE /api/postings/:id` | | 204 | 400, 401, 404 (missing or not yours) |
 
 `imageUrl` must be `https://` (no credentials, max 2048 chars). For the create/edit form, `PostingFormInput` validates a dollar string and outputs a `PostingInput`.
+
+### Listing limits
+
+`POST /api/postings` checks two limits (`src/shared/limits.ts`) before writing anything. Over either, it answers **429** with code **`listing_limit`** and a message to show as is:
+
+| Limit | Constant | Message | `Retry-After` |
+|---|---|---|---|
+| 50 active listings per user | `LISTINGS_ACTIVE_MAX` | `You can have up to 50 active listings. Delete one to post another.` | none (deleting one frees a slot) |
+| 20 creates per rolling hour per user (deleted listings still count) | `LISTINGS_CREATED_PER_HOUR_MAX`, `LISTINGS_RATE_WINDOW_SECONDS` | `You can post up to 20 listings an hour. Try again in N minutes.` (`1 minute` when N is 1) | seconds until the oldest create in the hour drops out |
+
+```json
+{ "error": { "code": "listing_limit", "message": "You can post up to 20 listings an hour. Try again in 12 minutes." } }
+```
+
+Editing (`PUT`) and deleting don't count against either limit.

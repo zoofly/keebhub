@@ -9,13 +9,22 @@ import {
   SavedListing,
   SavedPostingPage,
 } from "../../shared/schemas";
-import { api, mockOutbound, registerUser, validPosting } from "./helpers";
+import {
+  api,
+  forgetRecentCreates,
+  mockOutbound,
+  registerUser,
+  seedListings,
+  validPosting,
+} from "./helpers";
 
 let alice: string;
 let bob: string;
 
-beforeEach(() => {
+beforeEach(async () => {
   mockOutbound();
+  // This file creates many listings; the hourly limit has its own tests.
+  await forgetRecentCreates(env.DB);
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -242,10 +251,8 @@ describe("paging", () => {
   });
 
   it("defaults to 20 items", async () => {
-    const { cookie } = await registerUser("bulk");
-    for (let i = 0; i < 22; i += 1) {
-      await create(cookie, { title: `Bulk ${i}` });
-    }
+    const { cookie, user } = await registerUser("bulk");
+    await seedListings(env.DB, user.id, 22, (i) => `Bulk ${i}`);
     const page = PostingPage.parse(await (await api("/api/me/postings", { cookie })).json());
     expect(page.items).toHaveLength(20);
     expect(page.nextCursor).not.toBeNull();
@@ -343,13 +350,10 @@ describe("GET /api/me/saved/ids", () => {
   it("returns every saved id for the user only, beyond one page, newest save first", async () => {
     const { cookie } = await registerUser("idlister");
     const { cookie: other } = await registerUser("idother");
-    const ids: number[] = [];
-    for (let i = 0; i < 105; i += 1) {
-      const posting = await create(alice, { title: `Saved ${i}` });
-      ids.push(posting.id);
-      expect((await api(`/api/me/saved/${posting.id}`, { method: "PUT", cookie })).status).toBe(
-        201,
-      );
+    const { user: seller } = await registerUser("idseller");
+    const ids = await seedListings(env.DB, seller.id, 105, (i) => `Saved ${i}`);
+    for (const id of ids) {
+      expect((await api(`/api/me/saved/${id}`, { method: "PUT", cookie })).status).toBe(201);
     }
     await api(`/api/me/saved/${ids[0]}`, { method: "PUT", cookie: other });
 

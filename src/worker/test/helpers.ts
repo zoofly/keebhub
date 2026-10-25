@@ -190,7 +190,14 @@ export const validPosting = {
 /** The session id (public half of the token) from a "name=<id>.<secret>" cookie pair. */
 export const sessionIdFrom = (cookie: string): string => cookie.split("=")[1]?.split(".")[0] ?? "";
 
-const TABLES = ["users", "sessions", "postings", "saved_listings", "auth_throttle"] as const;
+const TABLES = [
+  "users",
+  "sessions",
+  "postings",
+  "saved_listings",
+  "auth_throttle",
+  "posting_creates",
+] as const;
 export type Table = (typeof TABLES)[number];
 
 /**
@@ -208,6 +215,7 @@ export async function dbSnapshot(
     postings: "SELECT * FROM postings ORDER BY id",
     saved_listings: "SELECT * FROM saved_listings ORDER BY user_id, posting_id",
     auth_throttle: "SELECT * FROM auth_throttle ORDER BY key",
+    posting_creates: "SELECT user_id, created_at FROM posting_creates ORDER BY user_id, created_at",
   } satisfies Record<Table, string>;
   const results = await db.batch(tables.map((table) => db.prepare(statements[table])));
   return Object.fromEntries(tables.map((table, i) => [table, results[i]?.results ?? []]));
@@ -224,4 +232,34 @@ export async function expectApiError(res: Response, status: number, code: string
   expect(body.error.code).toBe(code);
   expect(typeof body.error.message).toBe("string");
   return body;
+}
+
+/**
+ * Forgets recent creates, so tests that aren't about the hourly listing
+ * limit can post as often as they need (the active-listing cap still applies).
+ */
+export async function forgetRecentCreates(db: D1Database): Promise<void> {
+  await db.prepare("DELETE FROM posting_creates").run();
+}
+
+/** Inserts `count` listings for a user directly (bulk fixtures, no limits). */
+export async function seedListings(
+  db: D1Database,
+  userId: number,
+  count: number,
+  title = (i: number) => `Seeded ${i}`,
+): Promise<number[]> {
+  const ids: number[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const row = await db
+      .prepare(
+        "INSERT INTO postings (user_id, title, description, image_url, price_cents) VALUES (?, ?, '', 'https://example.com/seed.jpg', 1000) RETURNING id",
+      )
+      .bind(userId, title(i))
+      .first<{ id: number }>();
+    if (row) {
+      ids.push(row.id);
+    }
+  }
+  return ids;
 }

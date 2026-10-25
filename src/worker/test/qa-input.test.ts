@@ -17,6 +17,7 @@ import {
   api,
   dbSnapshot,
   expectApiError,
+  forgetRecentCreates,
   freshIp,
   GOOD_PASSWORD,
   loginUser,
@@ -35,8 +36,14 @@ beforeAll(async () => {
   seller = (await registerUser("input-seller")).cookie;
   spy.mockRestore();
 });
-beforeEach(() => {
+beforeEach(async () => {
   mockOutbound();
+  // These tests post many listings as one seller; the listing limits have
+  // their own tests (listing-limits.test.ts), so start each test under them.
+  await forgetRecentCreates(env.DB);
+  await env.DB.prepare(
+    "DELETE FROM postings WHERE user_id = (SELECT id FROM users WHERE username = 'input-seller')",
+  ).run();
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -228,6 +235,7 @@ describe("prices (integer cents only)", () => {
       samples.push(Math.floor(Math.random() * (PRICE_MAX_CENTS + 1)));
     }
     for (const cents of samples) {
+      await forgetRecentCreates(db); // 32 creates: stay under the hourly limit
       const created = PostingWithSeller.parse(
         await (await post({ ...validPosting, priceCents: cents })).json(),
       );

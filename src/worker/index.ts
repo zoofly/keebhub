@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
-import { BODY_LIMIT_BYTES } from "../shared/limits";
+import { BODY_LIMIT_BYTES, LISTINGS_RATE_WINDOW_SECONDS } from "../shared/limits";
 import { purgeExpiredSessions } from "./auth/session";
+import { purgePostingCreatesStatement } from "./db/postings";
 import { purgeThrottleStatement } from "./db/throttle";
 import type { AppEnv } from "./env";
+import { nowSeconds } from "./lib/time";
 import { jsonError, notFound, onError } from "./middleware/errors";
 import { jsonOnly, noStoreByDefault, originCheck } from "./middleware/security";
 import { loadSession } from "./middleware/session";
@@ -44,9 +46,13 @@ const routes = app
 
 export type AppType = typeof routes;
 
-/** Daily cron: drop expired sessions and finished throttle windows. */
+/** Daily cron: drop expired sessions, finished throttle windows and old create-log rows. */
 export async function purgeExpired(db: D1Database): Promise<void> {
-  await db.batch([purgeExpiredSessions(db), purgeThrottleStatement(db)]);
+  await db.batch([
+    purgeExpiredSessions(db),
+    purgeThrottleStatement(db),
+    purgePostingCreatesStatement(db, nowSeconds() - LISTINGS_RATE_WINDOW_SECONDS),
+  ]);
 }
 
 export default {
