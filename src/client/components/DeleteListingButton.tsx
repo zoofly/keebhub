@@ -1,12 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { isApiError } from "../api";
 import { listingErrorMessage } from "../lib/errors";
+import { focusPageHeading } from "../lib/focus";
 import { useDeletePosting } from "../lib/queries";
 import { toast } from "../lib/toast";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/confirm-dialog";
 
-/** Delete with a confirm dialog; the result toast reflects the real response. */
+/**
+ * Delete with a confirm dialog; the result toast reflects the real response.
+ * After a successful delete this button (and its card) is about to vanish, so
+ * focus moves to the page's <h1>, and "Listing deleted" is announced by the
+ * toaster's polite live region.
+ */
 export function DeleteListingButton({
   postingId,
   title,
@@ -19,6 +25,7 @@ export function DeleteListingButton({
   size?: "sm" | "md";
 }) {
   const [open, setOpen] = useState(false);
+  const deleted = useRef(false);
   const remove = useDeletePosting();
 
   return (
@@ -40,9 +47,11 @@ export function DeleteListingButton({
         busyLabel="Deleting…"
         busy={remove.isPending}
         onCancel={() => setOpen(false)}
+        focusAfterClose={() => (deleted.current ? focusPageHeading() : null)}
         onConfirm={() =>
           remove.mutate(postingId, {
             onSuccess: () => {
+              deleted.current = true;
               setOpen(false);
               toast.success("Listing deleted");
               onDeleted?.();

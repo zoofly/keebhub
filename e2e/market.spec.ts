@@ -1,4 +1,14 @@
-import { expect, expectNoHorizontalScroll, failNext, KASH, open, signIn, test } from "./fixtures";
+import {
+  createListing,
+  expect,
+  expectNoHorizontalScroll,
+  failNext,
+  KASH,
+  newUser,
+  open,
+  signIn,
+  test,
+} from "./fixtures";
 
 // Q-F3: postings list, cards, create/edit/delete, owner-only controls.
 
@@ -119,6 +129,37 @@ test("create, edit and delete a listing; the lists stay in sync", async ({ page 
   await dialog.getByRole("button", { name: "Delete listing" }).click();
   await expect(page.getByText("Listing deleted")).toBeVisible();
   await expect(mine).toHaveCount(0);
+  // Focus moved to the page heading, not <body> (the button is gone).
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => `${document.activeElement?.tagName}:${document.activeElement?.textContent}`,
+      ),
+    )
+    .toBe("H1:My listings");
+});
+
+test("deleting from the market grid moves focus to the heading and announces it", async ({
+  page,
+}) => {
+  await newUser(page, "delfocus");
+  const listing = await createListing(page, { title: "Focus test board" });
+  await open(page, "/market");
+  const card = cards(page).filter({ hasText: listing.title });
+  await card.getByRole("button", { name: `Delete ${listing.title}` }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete listing" }).click();
+  await expect(card).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => `${document.activeElement?.tagName}:${document.activeElement?.textContent}`,
+      ),
+    )
+    .toBe("H1:Market");
+  const inPoliteRegion = await page
+    .getByText("Listing deleted")
+    .evaluate((element) => element.closest('[aria-live="polite"]') !== null);
+  expect(inPoliteRegion).toBe(true);
 });
 
 test("someone else's listing has no owner controls and can't be edited by URL", async ({

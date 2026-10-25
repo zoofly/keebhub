@@ -126,7 +126,11 @@ export function useDeletePosting() {
       if (!error || apiClient.isApiError(error, 404)) {
         queryClient.removeQueries({ queryKey: keys.posting(id) });
       }
-      return invalidatePostings(queryClient);
+      // Not awaited: the caller's onSuccess (close the dialog, move focus off
+      // the Delete button) must run while the card is still on screen. If
+      // we waited for the refetch, the card - and the component holding
+      // those callbacks - would already be gone, dropping focus to <body>.
+      void invalidatePostings(queryClient);
     },
   });
 }
