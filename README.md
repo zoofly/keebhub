@@ -119,7 +119,7 @@ The PBKDF2 iteration count (`PBKDF2_ITERATIONS` in the same file) works the same
 `.github/workflows/ci.yml` runs on every push and pull request:
 
 - **check:** `npm ci`, a blocking `npm audit --omit=dev`, Biome, a generated-types check, a no-SQL-interpolation check, typecheck, Vitest, and Playwright against the real API.
-- **deploy:** applies the D1 migrations and runs `wrangler deploy`. It runs only for pushes to `main`, waits for approval in the `production` environment, skips itself until the Cloudflare secrets exist, and fails while `wrangler.jsonc` still has the placeholder D1 id.
+- **deploy:** applies the D1 migrations and runs `wrangler deploy`. It runs only for pushes to `main`, waits for approval in the `production` environment, skips itself until the Cloudflare secrets exist, and fails while `wrangler.jsonc` still has the placeholder D1 id or Turnstile site key. Runs on `main` are never cancelled by a newer push (only queued), and only one deploy runs at a time.
 
 Dependabot opens grouped weekly updates for npm and GitHub Actions.
 
@@ -141,6 +141,7 @@ No Cloudflare resources exist yet. Use a Free account with **no payment method**
    - `https://keebhub.<your-subdomain>.workers.dev/api/health` returns `{"status":"ok"}`.
    - Register, log in, list something, and change the password once.
    - Workers Observability: `cpuTime` for login, register **and the password change** (which hashes twice) is under 10 ms, with no Error 1102. At 50,000 PBKDF2 iterations these measured p50 4.4, 4.4 and 7.0 ms locally on an Apple M5 (see `docs/qa/test-matrix.md`); Cloudflare's cores may be slower. If they're over, lower `PBKDF2_ITERATIONS` now, while the only accounts are yours. Also check there are no CSP or 5xx errors.
+   - Workers Logs (Observability → Logs, open one `/api/auth/me` request): the request and response headers must not show the `Cookie` or `Set-Cookie` values (the session token). If they do, set `observability.logs.invocation_logs` to `false` in `wrangler.jsonc` and deploy again; the app's own JSON logs never include them.
    - Billing still shows the Free plan and no payment method.
    - The migration step succeeded (that's where D1 would reject the `STRICT` tables; `npx wrangler d1 migrations list DB --remote` should list nothing unapplied).
 

@@ -9,7 +9,10 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded runs on branches and PRs are cancelled, but never on main:
+  # a run there may be deploying (migrations, then the Worker), and cutting
+  # that off halfway could leave the database and the Worker out of step.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   check:
@@ -72,11 +75,16 @@ jobs:
     # Inert until Kash sets it up. Runs only for pushes to main, waits for
     # approval in the `production` environment, skips itself while the
     # Cloudflare secrets are missing, and fails while wrangler.jsonc still has
-    # the placeholder D1 id. main is the repository's default branch.
+    # the placeholder D1 id or Turnstile site key. main is the repository's
+    # default branch.
     name: Deploy to Cloudflare
     needs: [check]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
+    # One deploy at a time, and a running deploy is never cancelled.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -94,6 +102,9 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
           elif grep -q '"database_id": "00000000-0000-0000-0000-000000000000"' wrangler.jsonc; then
             echo "::error::wrangler.jsonc still has the placeholder D1 database_id."
+            exit 1
+          elif grep -q 'REPLACE_WITH_TURNSTILE_SITE_KEY' wrangler.jsonc; then
+            echo "::error::wrangler.jsonc still has the placeholder Turnstile site key (vars.TURNSTILE_SITE_KEY)."
             exit 1
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
