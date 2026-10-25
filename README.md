@@ -127,21 +127,21 @@ Dependabot opens grouped weekly updates for npm and GitHub Actions.
 
 No Cloudflare resources exist yet. Use a Free account with **no payment method**, and don't start the R2 or Images Paid checkouts.
 
-1. **Log in:** `npx wrangler login`, then `npx wrangler whoami` to check the account.
-2. **Database:** `npx wrangler d1 create keebhub-db`. Paste the printed `database_id` into `wrangler.jsonc`, replacing the all-zero placeholder, and commit it (the id is not a secret).
-3. **Turnstile widget:** in the dashboard, create a widget (Managed) for `keebhub.<your-subdomain>.workers.dev`, plus `localhost` if you want the real widget locally. Put its **site key** in `vars.TURNSTILE_SITE_KEY` in `wrangler.jsonc`.
+1. **Log in:** `npx wrangler login`, then `npx wrangler whoami` to check the account. If the account has never used Workers, open **Workers & Pages** in the dashboard once and pick your `workers.dev` subdomain; that is the `<your-subdomain>` below.
+2. **Database:** `npx wrangler d1 create keebhub-db`. When Wrangler asks "Would you like Wrangler to add it on your behalf?", answer **No** (yes would add a second binding next to `DB` instead of filling in the placeholder). Paste the printed `database_id` into `wrangler.jsonc`, replacing the all-zero placeholder, and commit it (the id is not a secret).
+3. **Turnstile widget:** in the dashboard, create a widget (Managed) for `keebhub.<your-subdomain>.workers.dev`. For the real widget locally, make a separate widget for `localhost` rather than adding `localhost` to the production one. Put the production widget's **site key** in `vars.TURNSTILE_SITE_KEY` in `wrangler.jsonc`.
 4. **Secrets** (each prompts for the value; nothing goes in the shell history):
    - `npx wrangler secret put PASSWORD_PEPPER_V1` with the output of `openssl rand -base64 32`. Store an offline copy.
    - `npx wrangler secret put TURNSTILE_SECRET_KEY` with the widget's secret key.
 
-   The Worker has to exist before secrets can be added, so if `secret put` says it doesn't, do step 6 by hand first (`npm run build && npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`), then add the secrets.
+   The first `secret put` asks whether to create the Worker, because it doesn't exist yet: answer **yes**. Wrangler creates an empty placeholder Worker that the first deploy replaces. Do the secrets **before** the first deploy: `wrangler.jsonc` lists them under `secrets.required`, so `wrangler deploy` refuses to deploy a Worker that doesn't have them.
 5. **CI deploys:** create an account API token (My Profile → API Tokens → Create Custom Token) with **Account → Workers Scripts: Edit** and **Account → D1: Edit**, limited to this account, with an expiry date (rotate it yearly). In GitHub, add the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and create the `production` environment with yourself as a required reviewer.
-6. **Deploy:** push to `main` and approve the `production` job (or deploy by hand as in step 4).
+6. **Deploy:** push to `main` and approve the `production` job. To deploy by hand instead: `npm run build && npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`. If the deploy is rejected because of the `ratelimits` block (the `AUTH_LIMITER` binding may not be available on Free), delete that block from `wrangler.jsonc`, run `npm run cf-typegen`, and deploy again; the code works without it.
 7. **Check:**
    - `https://keebhub.<your-subdomain>.workers.dev/api/health` returns `{"status":"ok"}`.
-   - Register, log in, list something.
-   - Workers Observability: login `cpuTime` is comfortably under 10 ms (if not, lower `PBKDF2_ITERATIONS`), and there are no CSP or 5xx errors.
+   - Register, log in, list something, and change the password once.
+   - Workers Observability: `cpuTime` for login **and for the password change** (which hashes twice, about 12 ms locally) is under 10 ms, with no Error 1102. If not, lower `PBKDF2_ITERATIONS` now, while the only accounts are yours. Also check there are no CSP or 5xx errors.
    - Billing still shows the Free plan and no payment method.
-   - The migration step succeeded (that's where D1 would reject the `STRICT` tables; `npx wrangler d1 migrations list DB --remote` should list nothing unapplied), and the `AUTH_LIMITER` rate-limit binding deployed. If Free doesn't allow it, remove it from `wrangler.jsonc`; the code works without it.
+   - The migration step succeeded (that's where D1 would reject the `STRICT` tables; `npx wrangler d1 migrations list DB --remote` should list nothing unapplied).
 
 The deploy job only runs for pushes to `main`, the repository's default branch.
