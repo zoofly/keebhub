@@ -242,6 +242,7 @@ export const ErrorCode = z.enum([
   "payload_too_large",
   "unsupported_media_type",
   "rate_limited",
+  "listing_limit",
   "unavailable",
   "internal",
 ]);

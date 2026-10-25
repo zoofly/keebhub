@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ApiRequestError } from "../api";
-import { loginErrorMessage, rateLimitedMessage, registerErrorMessage, waitText } from "./errors";
+import {
+  listingErrorMessage,
+  loginErrorMessage,
+  rateLimitedMessage,
+  registerErrorMessage,
+  waitText,
+} from "./errors";
 import { displayPrice } from "./format";
 
 describe("displayPrice", () => {
@@ -36,5 +42,27 @@ describe("error messages", () => {
     expect(registerErrorMessage(new ApiRequestError(0, "network", "x"))).toMatch(
       /reach the server/,
     );
+  });
+});
+
+describe("listing cap messages (429 listing_limit)", () => {
+  it("uses the server's message, adding the wait only when Retry-After is present", () => {
+    const hourly = new ApiRequestError(
+      429,
+      "listing_limit",
+      "You can create up to 20 listings an hour",
+      {},
+      600,
+    );
+    expect(listingErrorMessage(hourly)).toBe(
+      "You can create up to 20 listings an hour. Please wait about 10 minutes and try again.",
+    );
+    const active = new ApiRequestError(429, "listing_limit", "You have 50 active listings.");
+    expect(listingErrorMessage(active)).toBe("You have 50 active listings.");
+  });
+
+  it("keeps the generic message for other 429s", () => {
+    const limited = new ApiRequestError(429, "rate_limited", "Too many", {}, 60);
+    expect(listingErrorMessage(limited)).toBe(rateLimitedMessage(limited));
   });
 });

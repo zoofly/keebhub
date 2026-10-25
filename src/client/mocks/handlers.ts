@@ -36,6 +36,14 @@ export function setMockLatency(ms: number) {
   latencyMs = ms;
 }
 
+/**
+ * Listing caps, as on the API: at most 50 active listings per user, and at
+ * most 20 created per rolling hour (the hourly case sends Retry-After).
+ */
+export const MAX_ACTIVE_LISTINGS = 50;
+export const MAX_LISTINGS_PER_HOUR = 20;
+const HOUR_MS = 60 * 60 * 1000;
+
 /** Same lockout as the API: 10 failures lock a username for 15 minutes. */
 const MAX_FAILED_LOGINS = 10;
 const LOCKOUT_SECONDS = 15 * 60;
@@ -296,7 +304,32 @@ export const handlers = [
     route(async ({ request }) => {
       const user = requireUser();
       const input = parse(PostingInput, await readJson(request));
-      const now = new Date().toISOString();
+      const active = db.state.postings.filter((posting) => posting.userId === user.id).length;
+      if (active >= MAX_ACTIVE_LISTINGS) {
+        return error(
+          429,
+          "listing_limit",
+          `You can have up to ${MAX_ACTIVE_LISTINGS} active listings. Delete one to post another.`,
+        );
+      }
+      const nowMs = Date.now();
+      const recent = db.state.postingsCreated
+        .filter((row) => row.userId === user.id && nowMs - row.at < HOUR_MS)
+        .map((row) => row.at)
+        .sort((a, b) => a - b);
+      const oldest = recent[0];
+      if (recent.length >= MAX_LISTINGS_PER_HOUR && oldest !== undefined) {
+        const retryAfter = Math.max(1, Math.ceil((oldest + HOUR_MS - nowMs) / 1000));
+        return error(
+          429,
+          "listing_limit",
+          `You can create up to ${MAX_LISTINGS_PER_HOUR} listings an hour.`,
+          undefined,
+          { "Retry-After": String(retryAfter) },
+        );
+      }
+      db.state.postingsCreated.push({ userId: user.id, at: nowMs });
+      const now = new Date(nowMs).toISOString();
       const posting: Posting = {
         id: db.nextId(),
         userId: user.id,
