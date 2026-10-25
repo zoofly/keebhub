@@ -353,7 +353,7 @@ The algorithm is **PBKDF2-HMAC-SHA256, 50,000 iterations**, with a 16-byte rando
 
 | Layer | Where | Rule |
 |---|---|---|
-| Turnstile | register, login (managed or invisible widget) | Token verified server-side through `siteverify` **before** any D1 write. Tests use Cloudflare's always-pass and always-fail test keys |
+| Turnstile | register, login (managed or invisible widget, `data-action` = `register` / `login`) | Token verified server-side through `siteverify` **before** any D1 write: `success`, the reply's `hostname` must equal the request's host, and its `action` must match the form, so a token from another site or the other form is refused. Test-key results (`metadata.result_with_testing_key`) are accepted only on localhost. Tests mock siteverify; e2e uses Cloudflare's always-pass test keys on localhost |
 | Rate Limiting binding (if available on Free) | login, register, password change, keyed on `cf-connecting-ip` (IPv6 by /64) | 10 per 60 s per location; returns 429 with `Retry-After` |
 | D1 `auth_throttle` | login | Per username **+ IP** (IPv6 by /64): 10 failures in 15 min lock that pair for 15 min, so a lockout can't be weaponized against someone else; success clears it. Per username from any IP: a backstop of 100 failures an hour (15 min lock). Per IP: 30 failures in 15 min. *(Pre-launch review, 2026-10-25: the lock was per username only, which let anyone lock any account.)* |
 | D1 `auth_throttle` | password change, account delete | Per session: 5 wrong passwords in 15 min lock both forms for that session. Separate from login, so a login lockout never blocks them |

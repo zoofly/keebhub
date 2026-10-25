@@ -29,6 +29,7 @@ import {
   PASS_TOKEN,
   registerUser,
   sessionCookie,
+  siteverifyOk,
   WRONG_PASSWORD,
 } from "./helpers";
 
@@ -346,7 +347,7 @@ describe("Turnstile fails closed", () => {
     const forms: FormData[] = [];
     mockSiteverify((form) => {
       forms.push(form);
-      return Response.json({ success: true });
+      return siteverifyOk();
     });
     const res = await api("/api/auth/register", {
       body: { username: "ts-fields", password: GOOD_PASSWORD, turnstileToken: "token-abc" },
@@ -362,7 +363,12 @@ describe("Turnstile fails closed", () => {
   it("refuses without calling out when no secret is configured", async () => {
     const spy = vi.spyOn(globalThis, "fetch");
     vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(await verifyTurnstile({ TURNSTILE_SECRET_KEY: "" }, "token", null)).toBe(false);
+    expect(
+      await verifyTurnstile({ TURNSTILE_SECRET_KEY: "" }, "token", null, {
+        hostname: "keebhub.test",
+        action: "login",
+      }),
+    ).toBe(false);
     expect(spy).not.toHaveBeenCalled();
   });
 
@@ -400,7 +406,7 @@ describe("HIBP fails open", () => {
     return vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const request = new Request(input, init);
       if (request.url === SITEVERIFY_URL) {
-        return Response.json({ success: true });
+        return siteverifyOk();
       }
       if (request.url.startsWith(HIBP_RANGE_URL)) {
         return reply();
@@ -440,7 +446,7 @@ describe("HIBP fails open", () => {
       const request = new Request(input, init);
       urls.push(request);
       if (request.url === SITEVERIFY_URL) {
-        return Response.json({ success: true });
+        return siteverifyOk();
       }
       // The real suffix appears, but only as a padding row.
       return new Response(`${digest.slice(5)}:0\r\nFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF:3`);

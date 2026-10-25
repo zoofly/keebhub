@@ -22,7 +22,7 @@ cp .dev.vars.example .dev.vars   # then fill it in (see the comments in the file
 npm run dev                      # http://localhost:5173
 ```
 
-`.dev.vars` is git-ignored and holds local secrets only: a pepper you generate with `openssl rand -base64 32`, and Cloudflare's documented Turnstile **test** keys, which always pass. Register, login, password change and account deletion need it; browsing doesn't.
+`.dev.vars` is git-ignored and holds local secrets only: a pepper you generate with `openssl rand -base64 32`, and Cloudflare's documented Turnstile **test** keys, which always pass. The Worker accepts test-key results only on `localhost` (open the app at `http://localhost:5173`, not a LAN address). Register, login, password change and account deletion need it; browsing doesn't.
 
 `npm run dev:mock` runs the UI against in-browser MSW mocks instead of the Worker (no `.dev.vars` needed), which is handy for pure UI work.
 

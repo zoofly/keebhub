@@ -44,7 +44,7 @@ Switch            = { id, name, manufacturer, type: "linear" | "tactile" | "clic
 
 ## Auth (`/api/auth`)
 
-Register and login need a Turnstile token from the widget (site key from `GET /api/config`). The server verifies it before writing anything.
+Register and login need a Turnstile token from the widget (site key from `GET /api/config`), rendered with `data-action="register"` on the register form and `data-action="login"` on the login form. The server verifies it before writing anything, and refuses (403) a token Cloudflare doesn't confirm, one solved on another hostname, or one issued for the other form. Results from Cloudflare's test keys are accepted only on `localhost`.
 
 | Method and path | Request | Success | Errors |
 |---|---|---|---|

@@ -1,5 +1,5 @@
 // /api/auth: register, login, logout, me, change password.
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import {
   ChangePasswordInput,
   LoginInput,
@@ -15,7 +15,7 @@ import {
   deleteSession,
   setSessionCookie,
 } from "../auth/session";
-import { verifyTurnstile } from "../auth/turnstile";
+import { type TurnstileAction, verifyTurnstile } from "../auth/turnstile";
 import { deleteOtherSessionsStatement } from "../db/sessions";
 import {
   ACCOUNT_SESSION_RULE,
@@ -50,6 +50,12 @@ export const BREACHED_PASSWORD_MESSAGE =
 const BOT_CHECK_MESSAGE = "Bot check failed. Please try again.";
 const BAD_CREDENTIALS_MESSAGE = "Invalid username or password";
 
+/** What the Turnstile token must have been issued for: this host, this form. */
+const turnstileFor = (c: Context<AppEnv>, action: TurnstileAction) => ({
+  hostname: new URL(c.req.url).hostname,
+  action,
+});
+
 export const authRoutes = new Hono<AppEnv>()
   .post("/register", authRateLimit, zJson(RegisterInput), async (c) => {
     const { username, password, turnstileToken } = c.req.valid("json");
@@ -64,7 +70,7 @@ export const authRoutes = new Hono<AppEnv>()
       await logAuthEvent("auth.locked", { username, ip, cfRay });
       return rateLimited(c, wait);
     }
-    if (!(await verifyTurnstile(c.env, turnstileToken, ip))) {
+    if (!(await verifyTurnstile(c.env, turnstileToken, ip, turnstileFor(c, "register")))) {
       await logAuthEvent("auth.turnstile_failed", { username, ip, cfRay });
       return jsonError(c, 403, "forbidden", BOT_CHECK_MESSAGE);
     }
@@ -118,7 +124,7 @@ export const authRoutes = new Hono<AppEnv>()
       await logAuthEvent("auth.locked", { username, ip, cfRay });
       return rateLimited(c, wait);
     }
-    if (!(await verifyTurnstile(c.env, turnstileToken, ip))) {
+    if (!(await verifyTurnstile(c.env, turnstileToken, ip, turnstileFor(c, "login")))) {
       await logAuthEvent("auth.turnstile_failed", { username, ip, cfRay });
       return jsonError(c, 403, "forbidden", BOT_CHECK_MESSAGE);
     }

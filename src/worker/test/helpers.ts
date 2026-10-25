@@ -31,7 +31,23 @@ export interface ApiOptions {
 }
 
 /** Calls the Worker like the SPA would: same-origin, JSON. */
+/**
+ * The Turnstile action of the form that would have sent the current request
+ * (the real widget sets it with data-action). The siteverify mock echoes it.
+ */
+let pendingTurnstileAction = "login";
+
+/** A siteverify reply for this site, as Cloudflare sends for a real key. */
+export const siteverifyOk = (overrides: Record<string, unknown> = {}) =>
+  Response.json({
+    success: true,
+    hostname: new URL(ORIGIN).hostname,
+    action: pendingTurnstileAction,
+    ...overrides,
+  });
+
 export async function api(path: string, options: ApiOptions = {}): Promise<Response> {
+  pendingTurnstileAction = path.endsWith("/register") ? "register" : "login";
   const headers = new Headers(options.headers);
   const method =
     options.method ??
@@ -90,6 +106,8 @@ export interface OutboundMock {
   hibpDown?: boolean;
   /** Make siteverify unreachable. */
   turnstileDown?: boolean;
+  /** Fields to override in a passing siteverify reply (hostname, action, ...). */
+  siteverify?: Record<string, unknown>;
 }
 
 /**
@@ -105,7 +123,10 @@ export function mockOutbound(options: OutboundMock = {}) {
         throw new TypeError("network down");
       }
       const form = await request.formData();
-      return Response.json({ success: form.get("response") === PASS_TOKEN });
+      if (form.get("response") !== PASS_TOKEN) {
+        return Response.json({ success: false, "error-codes": ["invalid-input-response"] });
+      }
+      return siteverifyOk(options.siteverify);
     }
     if (request.url.startsWith("https://api.pwnedpasswords.com/range/")) {
       if (options.hibpDown) {
