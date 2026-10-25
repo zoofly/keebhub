@@ -159,3 +159,16 @@ test("profile: change password, wrong current password is a field error", async 
   await section.getByRole("button", { name: "Change password" }).click();
   await expect(page.getByText("Password changed")).toBeVisible();
 });
+
+for (const [path, formName, action] of [
+  ["/login", "Log in", "login"],
+  ["/register", "Create an account", "register"],
+] as const) {
+  test(`the ${path} widget is rendered with action "${action}"`, async ({ page }) => {
+    await open(page, path);
+    const form = page.getByRole("form", { name: formName });
+    await expect(form.locator(".cf-turnstile")).toHaveAttribute("data-action", action);
+    // The stand-in echoes the explicit-render option it received.
+    await expect(form.getByTestId("turnstile-stub")).toHaveAttribute("data-action", action);
+  });
+}

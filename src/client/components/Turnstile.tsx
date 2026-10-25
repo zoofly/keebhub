@@ -154,7 +154,10 @@ export function Turnstile({ onToken, action, ref }: TurnstileProps) {
   return (
     <div className="min-h-[65px]">
       {/* Turnstile renders its own accessible iframe in here. */}
-      <div ref={container} className="cf-turnstile" />
+      {/* The action ("login" / "register") goes to Turnstile both as the
+          explicit-render option and as data-action; the API's siteverify
+          check rejects a token issued for the other form. */}
+      <div ref={container} className="cf-turnstile" data-action={action} />
       {(status === "loading" || config.isPending) && !config.isError && (
         <p className="text-sm text-muted" role="status">
           Loading the security check…

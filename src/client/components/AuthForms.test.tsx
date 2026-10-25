@@ -161,3 +161,18 @@ describe("Login", () => {
     },
   );
 });
+
+describe("Turnstile action", () => {
+  it.each([
+    ["/login", "Log in", "login"],
+    ["/register", "Create an account", "register"],
+  ])("%s renders the widget with action %j", async (path, formName, action) => {
+    const fake = installFakeTurnstile();
+    renderApp(path);
+    const form = await screen.findByRole("form", { name: formName });
+    await waitFor(() => expect(fake.renders).toHaveLength(1));
+    expect(fake.renders[0]?.action).toBe(action);
+    expect(fake.renders[0]?.container).toHaveAttribute("data-action", action);
+    expect(form.contains(fake.renders[0]?.container ?? null)).toBe(true);
+  });
+});
